@@ -9,5 +9,6 @@ public class AppInventarioHospitalDeSimulacionClinicaCeuApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AppInventarioHospitalDeSimulacionClinicaCeuApplication.class, args);
 	}
+	///jajajja
 
 }
