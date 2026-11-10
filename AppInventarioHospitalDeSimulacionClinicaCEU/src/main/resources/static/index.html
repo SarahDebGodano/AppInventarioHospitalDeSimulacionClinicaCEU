@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Inventario · Hospital de simulación</title>
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header class="cabecera">
+    <h1>Inventario</h1>
+    <p>Hospital de simulación clínica</p>
+</header>
+
+<main>
+    <p id="mensaje" class="mensaje error" hidden></p>
+    <ul id="lista" class="lista-almacenes"></ul>
+    <button id="btn-imprimir" class="boton boton-ancho" type="button">Imprimir inventario</button>
+</main>
+
+<script src="js/api.js"></script>
+<script>
+    const lista = document.getElementById('lista');
+    const mensaje = document.getElementById('mensaje');
+
+    document.getElementById('btn-imprimir').addEventListener('click', descargarInforme);
+
+    async function cargar() {
+        try {
+            const almacenes = await getAlmacenes();
+            if (almacenes.length === 0) {
+                lista.innerHTML = '<li class="vacio">Aún no hay almacenes registrados.</li>';
+                return;
+            }
+            for (const a of almacenes) {
+                const li = document.createElement('li');
+                const enlace = document.createElement('a');
+                enlace.className = 'almacen';
+                enlace.href = 'almacen.html?id=' + encodeURIComponent(a.id);
+                const inicial = document.createElement('div');
+                inicial.className = 'inicial';
+                inicial.textContent = a.nombre.trim().charAt(0).toUpperCase();
+                const texto = document.createElement('div');
+                texto.className = 'texto';
+                const nombre = document.createElement('strong');
+                nombre.textContent = a.nombre;
+                const desc = document.createElement('span');
+                desc.className = 'descripcion';
+                desc.textContent = a.descripcion || '';
+                texto.append(nombre, desc);
+                enlace.append(inicial, texto);
+                li.append(enlace);
+                lista.append(li);
+            }
+        } catch (e) {
+            mensaje.textContent = 'No se pudo cargar la lista de almacenes. ' + e.message;
+            mensaje.hidden = false;
+        }
+    }
+    cargar();
+</script>
+</body>
+</html>
