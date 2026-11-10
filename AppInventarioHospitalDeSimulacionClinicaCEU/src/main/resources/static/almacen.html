@@ -4,32 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Almacén · Inventario</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-<header class="cabecera">
-    <h1 id="titulo">Almacén</h1>
-    <p><a href="index.html">Todos los almacenes</a></p>
-</header>
+<main class="container py-3" style="max-width: 42rem;">
+    <header class="mb-3">
+        <a href="index.html" class="small">← Todos los almacenes</a>
+        <h1 id="titulo" class="h2 fw-bold mt-1">Almacén</h1>
+    </header>
 
-<main>
-    <p id="mensaje" class="mensaje" hidden></p>
+    <div id="mensaje" class="alert alert-primary" hidden></div>
 
-    <div class="controles">
-        <div>
-            <label for="usuario">¿Quién eres?</label>
-            <select id="usuario"></select>
-        </div>
-        <div>
-            <label for="buscador">Buscar producto</label>
-            <input id="buscador" type="search" placeholder="Nombre, categoría o ubicación" autocomplete="off">
+    <div class="card controles-fijos mb-3">
+        <div class="card-body">
+            <label for="usuario" class="form-label">¿Quién eres?</label>
+            <select id="usuario" class="form-select form-select-lg mb-3"></select>
+            <label for="buscador" class="form-label">Buscar producto</label>
+            <input id="buscador" type="search" class="form-control form-control-lg" placeholder="Nombre, categoría o ubicación" autocomplete="off">
         </div>
     </div>
 
-    <ul id="productos" class="productos"></ul>
+    <div id="productos"></div>
 </main>
 
-<p id="aviso" class="aviso-flotante" role="status" hidden></p>
+<div id="aviso" class="aviso-flotante alert alert-dark position-fixed bottom-0 start-50 translate-middle-x mb-3 py-2 px-4" role="status" hidden></div>
 
 <script src="js/api.js"></script>
 <script>
@@ -48,7 +47,7 @@
 
     function mostrarMensaje(texto, esError) {
         elMensaje.textContent = texto;
-        elMensaje.className = 'mensaje' + (esError ? ' error' : '');
+        elMensaje.className = 'alert ' + (esError ? 'alert-danger' : 'alert-primary');
         elMensaje.hidden = !texto;
     }
 
@@ -69,21 +68,24 @@
 
     async function cargarUsuarios() {
         const usuarios = await getUsuarios();
-        const opcion0 = new Option('Elige tu nombre', '');
-        elUsuario.append(opcion0);
+        elUsuario.append(new Option('Elige tu nombre', ''));
         for (const u of usuarios) elUsuario.append(new Option(u.nombre, u.id));
         const guardado = leerUsuarioGuardado();
         if (guardado && usuarios.some(u => String(u.id) === guardado)) elUsuario.value = guardado;
-        elUsuario.addEventListener('change', () => {
-            guardarUsuario(elUsuario.value);
-            pintar();
-        });
+        elUsuario.addEventListener('change', () => guardarUsuario(elUsuario.value));
     }
 
     async function cargarTitulo() {
         const almacenes = await getAlmacenes();
         const a = almacenes.find(x => x.id === almacenId);
         if (a) { elTitulo.textContent = a.nombre; document.title = a.nombre + ' · Inventario'; }
+    }
+
+    function crear(etiqueta, clases, texto) {
+        const el = document.createElement(etiqueta);
+        if (clases) el.className = clases;
+        if (texto !== undefined) el.textContent = texto;
+        return el;
     }
 
     function pintar() {
@@ -93,64 +95,51 @@
 
         elLista.replaceChildren();
         if (visibles.length === 0) {
-            const li = document.createElement('li');
-            li.className = 'vacio';
-            li.textContent = texto ? 'Ningún producto coincide con la búsqueda.' : 'Este almacén aún no tiene productos.';
-            elLista.append(li);
+            elLista.append(crear('p', 'text-center py-4',
+                texto ? 'Ningún producto coincide con la búsqueda.' : 'Este almacén aún no tiene productos.'));
             return;
         }
 
         for (const e of visibles) {
             const bajo = e.cantidad < e.minimo;
-            const li = document.createElement('li');
-            li.className = 'producto' + (bajo ? ' bajo' : '');
+            const tarjeta = crear('div', 'card mb-3');
+            const cuerpo = crear('div', 'card-body');
 
-            const titulo = document.createElement('h2');
-            titulo.textContent = e.producto;
-            if (bajo) {
-                const tag = document.createElement('span');
-                tag.className = 'etiqueta-bajo';
-                tag.textContent = 'Bajo mínimo';
-                titulo.append(tag);
-            }
+            const titulo = crear('h2', 'h5 mb-1', e.producto);
+            if (bajo) titulo.append(crear('span', 'badge text-bg-danger ms-2', 'Bajo mínimo'));
 
-            const detalle = document.createElement('p');
-            detalle.className = 'detalle';
-            detalle.textContent = [e.categoria, e.ubicacion, 'Mínimo ' + e.minimo].filter(Boolean).join(', ');
+            const detalle = crear('p', 'small text-body-secondary mb-3',
+                [e.categoria, e.ubicacion, 'Mínimo ' + e.minimo].filter(Boolean).join(', '));
 
             // Barra de nivel: la marca central equivale al mínimo; llena al doble del mínimo.
-            const nivel = document.createElement('div');
-            nivel.className = 'nivel';
+            const nivel = crear('div', 'nivel mb-3');
             nivel.setAttribute('aria-hidden', 'true');
-            const relleno = document.createElement('div');
-            relleno.className = 'relleno';
-            const tope = Math.max(e.minimo * 2, 1);
-            relleno.style.width = Math.min(100, (e.cantidad / tope) * 100) + '%';
-            nivel.append(relleno);
+            const progreso = crear('div', 'progress');
+            progreso.style.height = '8px';
+            const barra = crear('div', 'progress-bar ' + (bajo ? 'bg-danger' : 'bg-success'));
+            barra.style.width = Math.min(100, (e.cantidad / Math.max(e.minimo * 2, 1)) * 100) + '%';
+            progreso.append(barra);
+            nivel.append(progreso);
 
-            const fila = document.createElement('div');
-            fila.className = 'cantidad';
+            const fila = crear('div', 'd-flex align-items-center justify-content-between gap-3');
 
-            const menos = document.createElement('button');
+            const menos = crear('button', 'btn btn-outline-primary rounded-circle btn-cantidad', '−');
             menos.type = 'button';
-            menos.textContent = '−';
             menos.setAttribute('aria-label', 'Restar una unidad de ' + e.producto);
             menos.disabled = e.cantidad <= 0;
             menos.addEventListener('click', () => mover(e, 'SALIDA'));
 
-            const numero = document.createElement('output');
-            numero.textContent = e.cantidad;
+            const numero = crear('output', 'fs-1 fw-bold flex-fill text-center' + (bajo ? ' text-danger' : ''), e.cantidad);
 
-            const mas = document.createElement('button');
+            const mas = crear('button', 'btn btn-primary rounded-circle btn-cantidad', '+');
             mas.type = 'button';
-            mas.className = 'mas';
-            mas.textContent = '+';
             mas.setAttribute('aria-label', 'Sumar una unidad de ' + e.producto);
             mas.addEventListener('click', () => mover(e, 'ENTRADA'));
 
             fila.append(menos, numero, mas);
-            li.append(titulo, detalle, nivel, fila);
-            elLista.append(li);
+            cuerpo.append(titulo, detalle, nivel, fila);
+            tarjeta.append(cuerpo);
+            elLista.append(tarjeta);
         }
     }
 
@@ -161,7 +150,7 @@
 
     async function mover(existencia, tipo) {
         if (!elUsuario.value) {
-            mostrarMensaje('Elige tu nombre arriba antes de mover material.', true);
+            mostrarMensaje('Elige tu nombre arriba antes de mover material.', false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             elUsuario.focus();
             return;
@@ -189,7 +178,6 @@
         }
         try {
             await Promise.all([cargarTitulo(), cargarUsuarios(), recargarExistencias()]);
-            pintar();
         } catch (err) {
             mostrarMensaje('No se pudo cargar el almacén. ' + err.message, true);
         }
