@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Inventario · Hospital de simulación</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-<header class="cabecera">
-    <h1>Inventario</h1>
-    <p>Hospital de simulación clínica</p>
-</header>
+<main class="container py-4" style="max-width: 42rem;">
+    <header class="text-center mb-4">
+        <h1 class="display-5 fw-bold">Inventario</h1>
+        <p class="lead mb-0">Hospital de simulación clínica</p>
+    </header>
 
-<main>
-    <p id="mensaje" class="mensaje error" hidden></p>
-    <ul id="lista" class="lista-almacenes"></ul>
-    <button id="btn-imprimir" class="boton boton-ancho" type="button">Imprimir inventario</button>
+    <div id="mensaje" class="alert alert-danger" hidden></div>
+    <div id="lista" class="list-group mb-4"></div>
+    <button id="btn-imprimir" class="btn btn-primary btn-lg w-100" type="button">Imprimir inventario</button>
 </main>
 
 <script src="js/api.js"></script>
@@ -29,28 +30,21 @@
         try {
             const almacenes = await getAlmacenes();
             if (almacenes.length === 0) {
-                lista.innerHTML = '<li class="vacio">Aún no hay almacenes registrados.</li>';
+                lista.innerHTML = '<div class="list-group-item text-center py-4">Aún no hay almacenes registrados.</div>';
                 return;
             }
             for (const a of almacenes) {
-                const li = document.createElement('li');
                 const enlace = document.createElement('a');
-                enlace.className = 'almacen';
+                enlace.className = 'list-group-item list-group-item-action py-3';
                 enlace.href = 'almacen.html?id=' + encodeURIComponent(a.id);
-                const inicial = document.createElement('div');
-                inicial.className = 'inicial';
-                inicial.textContent = a.nombre.trim().charAt(0).toUpperCase();
-                const texto = document.createElement('div');
-                texto.className = 'texto';
-                const nombre = document.createElement('strong');
+                const nombre = document.createElement('div');
+                nombre.className = 'fw-bold fs-5';
                 nombre.textContent = a.nombre;
-                const desc = document.createElement('span');
-                desc.className = 'descripcion';
+                const desc = document.createElement('small');
+                desc.className = 'text-body-secondary';
                 desc.textContent = a.descripcion || '';
-                texto.append(nombre, desc);
-                enlace.append(inicial, texto);
-                li.append(enlace);
-                lista.append(li);
+                enlace.append(nombre, desc);
+                lista.append(enlace);
             }
         } catch (e) {
             mensaje.textContent = 'No se pudo cargar la lista de almacenes. ' + e.message;
