@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Almacén · Inventario</title>
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
+    <link rel="stylesheet" href="css/estilos.css?v=2">
 </head>
 <body>
 <main class="container py-3" style="max-width: 42rem;">
@@ -14,7 +14,7 @@
         <h1 id="titulo" class="h2 fw-bold mt-1">Almacén</h1>
     </header>
 
-    <div id="mensaje" class="alert alert-primary" hidden></div>
+    <div id="mensaje" class="mensaje mensaje-rosa" hidden></div>
 
     <div class="card controles-fijos mb-3">
         <div class="card-body">
@@ -47,7 +47,7 @@
 
     function mostrarMensaje(texto, esError) {
         elMensaje.textContent = texto;
-        elMensaje.className = 'alert ' + (esError ? 'alert-danger' : 'alert-primary');
+        elMensaje.className = 'mensaje ' + (esError ? 'mensaje-morado' : 'mensaje-rosa');
         elMensaje.hidden = !texto;
     }
 
@@ -173,7 +173,7 @@
 
     async function iniciar() {
         if (!almacenId) {
-            mostrarMensaje('Falta el almacén en la dirección. Entra desde la lista de almacenes o escanea el QR.', true);
+            mostrarMensaje('Falta el almacén en la dirección. Entra desde la lista de almacenes o escanea el QR.', false);
             return;
         }
         try {

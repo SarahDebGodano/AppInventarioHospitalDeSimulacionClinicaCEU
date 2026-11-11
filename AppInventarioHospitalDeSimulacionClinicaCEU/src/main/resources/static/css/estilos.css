@@ -19,3 +19,25 @@
 
 /* Aviso que aparece abajo al registrar un movimiento */
 .aviso-flotante { z-index: 20; }
+
+/* Quartz usa naranja para "danger". Lo cambiamos por el rosa del tema. */
+:root, [data-bs-theme=light] {
+    --bs-danger: #e83283;
+    --bs-danger-rgb: 232, 50, 131;
+    --bs-danger-text-emphasis: #5d1434;
+    --bs-danger-bg-subtle: #fad6e6;
+    --bs-danger-border-subtle: #f6adcd;
+}
+
+/* Mensajes propios: rosa (aviso) y morado (error). No dependen de las reglas de .alert del tema. */
+.mensaje {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.5rem;
+    border-left: 6px solid var(--color-mensaje);
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+.mensaje[hidden] { display: none; }
+.mensaje-rosa { --color-mensaje: #e83283; }
+.mensaje-morado { --color-mensaje: #6f2dbd; }
