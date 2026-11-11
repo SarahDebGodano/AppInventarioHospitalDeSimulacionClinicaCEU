@@ -4,12 +4,20 @@ import com.ceu.inventario.dto.AlmacenDTO;
 import com.ceu.inventario.dto.ExistenciaDTO;
 import com.ceu.inventario.dto.MovimientoDTO;
 import com.ceu.inventario.dto.MovimientoRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class InventarioService {
+
+    private final AlmacenRepository almacenRepository;
+    private final ProductoRepository productoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final ExistenciaRepository existenciaRepository;
+    private final MovimientoRepository movimientoRepository
     /** Los almacenes activos, ordenados por nombre. */
     public List<AlmacenDTO> listarAlmacenes() {
         throw new UnsupportedOperationException("Pendiente");
