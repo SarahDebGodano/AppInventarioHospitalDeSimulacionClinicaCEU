@@ -18,8 +18,6 @@
 
     <div class="card controles-fijos mb-3">
         <div class="card-body">
-            <label for="usuario" class="form-label">¿Quién eres?</label>
-            <select id="usuario" class="form-select form-select-lg mb-3"></select>
             <label for="buscador" class="form-label">Buscar producto</label>
             <input id="buscador" type="search" class="form-control form-control-lg" placeholder="Nombre, categoría o ubicación" autocomplete="off">
         </div>
@@ -37,7 +35,6 @@
 
     const elTitulo = document.getElementById('titulo');
     const elMensaje = document.getElementById('mensaje');
-    const elUsuario = document.getElementById('usuario');
     const elBuscador = document.getElementById('buscador');
     const elLista = document.getElementById('productos');
     const elAviso = document.getElementById('aviso');
@@ -56,23 +53,6 @@
         elAviso.hidden = false;
         clearTimeout(temporizadorAviso);
         temporizadorAviso = setTimeout(() => { elAviso.hidden = true; }, 2000);
-    }
-
-    // localStorage puede fallar (modo privado), por eso va protegido.
-    function leerUsuarioGuardado() {
-        try { return localStorage.getItem('usuarioId'); } catch (e) { return null; }
-    }
-    function guardarUsuario(id) {
-        try { localStorage.setItem('usuarioId', id); } catch (e) { /* sin persistencia */ }
-    }
-
-    async function cargarUsuarios() {
-        const usuarios = await getUsuarios();
-        elUsuario.append(new Option('Elige tu nombre', ''));
-        for (const u of usuarios) elUsuario.append(new Option(u.nombre, u.id));
-        const guardado = leerUsuarioGuardado();
-        if (guardado && usuarios.some(u => String(u.id) === guardado)) elUsuario.value = guardado;
-        elUsuario.addEventListener('change', () => guardarUsuario(elUsuario.value));
     }
 
     async function cargarTitulo() {
@@ -149,12 +129,6 @@
     }
 
     async function mover(existencia, tipo) {
-        if (!elUsuario.value) {
-            mostrarMensaje('Elige tu nombre arriba antes de mover material.', false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            elUsuario.focus();
-            return;
-        }
         mostrarMensaje('', false);
         try {
             await postMovimiento({
@@ -162,7 +136,7 @@
                 productoId: existencia.productoId,
                 cantidad: 1,
                 tipo: tipo,
-                usuarioId: Number(elUsuario.value),
+                usuarioId: null, // TODO: acordar con Sarah si el movimiento puede guardarse sin usuario
             });
             await recargarExistencias();
             avisar(tipo === 'SALIDA' ? 'Salida registrada' : 'Entrada registrada');
@@ -177,7 +151,7 @@
             return;
         }
         try {
-            await Promise.all([cargarTitulo(), cargarUsuarios(), recargarExistencias()]);
+            await Promise.all([cargarTitulo(), recargarExistencias()]);
         } catch (err) {
             mostrarMensaje('No se pudo cargar el almacén. ' + err.message, true);
         }
