@@ -11,6 +11,5 @@ public record MovimientoRequest (
     @NotNull Long productId,
     @Min(0) int cantidad,
     @NotNull long usuarioId,
-    Long almacenDestinoId,
-    @Size(max=255)String motivo
+    Long almacenDestinoId
     ){}
