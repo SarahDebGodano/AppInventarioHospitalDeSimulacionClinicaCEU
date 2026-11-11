@@ -14,7 +14,7 @@
         <h1 id="titulo" class="h2 fw-bold mt-1">Almacén</h1>
     </header>
 
-    <div id="mensaje" class="mensaje mensaje-rosa" hidden></div>
+    <div id="mensaje" class="mensaje mensaje-rosa" hidden></div> //dnd se van a mostrar los avisos y errores
 
     <div class="card controles-fijos mb-3">
         <div class="card-body">
@@ -26,7 +26,7 @@
     <div id="productos"></div>
 </main>
 
-<div id="aviso" class="aviso-flotante alert alert-dark position-fixed bottom-0 start-50 translate-middle-x mb-3 py-2 px-4" role="status" hidden></div>
+<div id="aviso" class="aviso-flotante alert alert-dark position-fixed bottom-0 start-50 translate-middle-x mb-3 py-2 px-4" role="status" hidden></div> //mensaje flotante abajo (default==oculto)
 
 <script src="js/api.js"></script>
 <script>
@@ -39,19 +39,22 @@
     const elLista = document.getElementById('productos');
     const elAviso = document.getElementById('aviso');
 
-    let existencias = [];
-    let temporizadorAviso;
+    let existencias = []; //lista completa de productos del almacen
+    let temporizadorAviso; //ocultar el flotante tras 2 segs
 
+    //rosa == false
+    //morado == true
     function mostrarMensaje(texto, esError) {
         elMensaje.textContent = texto;
         elMensaje.className = 'mensaje ' + (esError ? 'mensaje-morado' : 'mensaje-rosa');
         elMensaje.hidden = !texto;
     }
 
+    //muestra el aviso de 2 segs
     function avisar(texto) {
         elAviso.textContent = texto;
         elAviso.hidden = false;
-        clearTimeout(temporizadorAviso);
+        clearTimeout(temporizadorAviso); // evita que un anuncio anterior lo oculte si pisas dos veces seguidas
         temporizadorAviso = setTimeout(() => { elAviso.hidden = true; }, 2000);
     }
 
@@ -61,6 +64,7 @@
         if (a) { elTitulo.textContent = a.nombre; document.title = a.nombre + ' · Inventario'; }
     }
 
+    //crea elemento HTML en una línea (así un nombre de producto con símbolos raros no se interpreta como código)
     function crear(etiqueta, clases, texto) {
         const el = document.createElement(etiqueta);
         if (clases) el.className = clases;
@@ -68,18 +72,29 @@
         return el;
     }
 
+    //Función principal
+        // Se llama cada vez que cambian los datos o el buscador
     function pintar() {
+        //Filtra existencias según lo escrito
         const texto = elBuscador.value.trim().toLowerCase();
         const visibles = existencias.filter(e =>
             [e.producto, e.categoria, e.ubicacion].some(c => (c || '').toLowerCase().includes(texto)));
 
+        //vacía la lista replaceChildren y la vuleve a construir
         elLista.replaceChildren();
         if (visibles.length === 0) {
             elLista.append(crear('p', 'text-center py-4',
-                texto ? 'Ningún producto coincide con la búsqueda.' : 'Este almacén aún no tiene productos.'));
+                texto ? 'Ningún producto coincide con la búsqueda.' : 'Este almacén aún no tiene productos.')); //si no coincide
             return;
         }
 
+        /*Para cada producto se crea:
+        * 1. nombre
+        * 2. bajo: bajo mínimo si cantidad < mínimo
+        * 3. línea con categoría, ubicación y mínimo (.filter(Boolean) descarta los campos vacíos)
+        * 4. barra de nivel: ancho= cantidad/(mínimox2) --> limitado por 100%
+        * 5. fila de - num + --> si la cantidad es 0 - se desactiva ; los dos llaman a mover() con SALIDA o ENTRADA
+        * */
         for (const e of visibles) {
             const bajo = e.cantidad < e.minimo;
             const tarjeta = crear('div', 'card mb-3');
@@ -128,6 +143,7 @@
         pintar();
     }
 
+    //lo que pasa al pisar -/+
     async function mover(existencia, tipo) {
         mostrarMensaje('', false);
         try {
@@ -145,6 +161,8 @@
         }
     }
 
+    //comprueba que hay ID
+        //Si lo hay carga el título y existencias a la vez con Promise.all
     async function iniciar() {
         if (!almacenId) {
             mostrarMensaje('Falta el almacén en la dirección. Entra desde la lista de almacenes o escanea el QR.', false);
@@ -157,7 +175,7 @@
         }
     }
 
-    elBuscador.addEventListener('input', pintar);
+    elBuscador.addEventListener('input', pintar); //conecta el buscador
     iniciar();
 </script>
 </body>
