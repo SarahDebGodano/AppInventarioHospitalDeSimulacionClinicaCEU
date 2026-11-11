@@ -14,18 +14,20 @@
         <h1 id="titulo" class="h2 fw-bold mt-1">Almacén</h1>
     </header>
 
+    <!-- Aquí se muestran los avisos y errores (oculto por defecto) -->
     <div id="mensaje" class="mensaje mensaje-rosa" hidden></div>
 
     <div class="card controles-fijos mb-3">
         <div class="card-body">
             <label for="buscador" class="form-label">Buscar producto</label>
-            <input id="buscador" type="search" class="form-control form-control-lg" placeholder="Nombre, categoría o ubicación" autocomplete="off">
+            <input id="buscador" type="search" class="form-control form-control-lg" placeholder="Ej.: guantes, jeringa" autocomplete="off">
         </div>
     </div>
 
     <div id="productos"></div>
 </main>
 
+<!-- Mensaje flotante de abajo (oculto por defecto) -->
 <div id="aviso" class="aviso-flotante alert alert-dark position-fixed bottom-0 start-50 translate-middle-x mb-3 py-2 px-4" role="status" hidden></div>
 
 <script src="js/api.js"></script>
@@ -61,7 +63,12 @@
     async function cargarTitulo() {
         const almacenes = await getAlmacenes();
         const a = almacenes.find(x => x.id === almacenId);
-        if (a) { elTitulo.textContent = a.nombre; document.title = a.nombre + ' · Inventario'; }
+        if (a) {
+            elTitulo.textContent = a.nombre;
+            document.title = a.nombre + ' · Inventario';
+            // Se recuerda para que la lista de almacenes ofrezca "Volver a ..."
+            try { localStorage.setItem('ultimoAlmacen', JSON.stringify({ id: a.id, nombre: a.nombre })); } catch (e) { /* sin persistencia */ }
+        }
     }
 
     //crea elemento HTML en una línea (así un nombre de producto con símbolos raros no se interpreta como código)
@@ -73,14 +80,14 @@
     }
 
     //Función principal
-        // Se llama cada vez que cambian los datos o el buscador
+    // Se llama cada vez que cambian los datos o el buscador
     function pintar() {
         //Filtra existencias según lo escrito
         const texto = elBuscador.value.trim().toLowerCase();
         const visibles = existencias.filter(e =>
             [e.producto, e.categoria, e.ubicacion].some(c => (c || '').toLowerCase().includes(texto)));
 
-        //vacía la lista replaceChildren y la vuleve a construir
+        //vacía la lista replaceChildren y la vuelve a construir
         elLista.replaceChildren();
         if (visibles.length === 0) {
             elLista.append(crear('p', 'text-center py-4',
@@ -90,13 +97,15 @@
 
         /*Para cada producto se crea:
         * 1. nombre
-        * 2. bajo: bajo mínimo si cantidad < mínimo
+        * 2. bajo: viene calculado del servidor (e.bajoMinimo = cantidad < stockMinimo)
         * 3. línea con categoría, ubicación y mínimo (.filter(Boolean) descarta los campos vacíos)
         * 4. barra de nivel: ancho= cantidad/(mínimox2) --> limitado por 100%
+        *    solo si hay mínimo definido (stockMinimo > 0); si es 0 no tiene sentido
         * 5. fila de - num + --> si la cantidad es 0 - se desactiva ; los dos llaman a mover() con SALIDA o ENTRADA
         * */
         for (const e of visibles) {
-            const bajo = e.cantidad < e.minimo;
+            const bajo = e.bajoMinimo;
+            const hayMinimo = e.stockMinimo > 0;
             const tarjeta = crear('div', 'card mb-3');
             const cuerpo = crear('div', 'card-body');
 
@@ -104,7 +113,7 @@
             if (bajo) titulo.append(crear('span', 'badge text-bg-danger ms-2', 'Bajo mínimo'));
 
             const detalle = crear('p', 'small text-body-secondary mb-3',
-                [e.categoria, e.ubicacion, 'Mínimo ' + e.minimo].filter(Boolean).join(', '));
+                [e.categoria, e.ubicacion, hayMinimo ? 'Mínimo ' + e.stockMinimo : null].filter(Boolean).join(', '));
 
             // Barra de nivel: la marca central equivale al mínimo; llena al doble del mínimo.
             const nivel = crear('div', 'nivel mb-3');
@@ -112,7 +121,7 @@
             const progreso = crear('div', 'progress');
             progreso.style.height = '8px';
             const barra = crear('div', 'progress-bar ' + (bajo ? 'bg-danger' : 'bg-success'));
-            barra.style.width = Math.min(100, (e.cantidad / Math.max(e.minimo * 2, 1)) * 100) + '%';
+            barra.style.width = Math.min(100, (e.cantidad / Math.max(e.stockMinimo * 2, 1)) * 100) + '%';
             progreso.append(barra);
             nivel.append(progreso);
 
@@ -132,14 +141,18 @@
             mas.addEventListener('click', () => mover(e, 'ENTRADA'));
 
             fila.append(menos, numero, mas);
-            cuerpo.append(titulo, detalle, nivel, fila);
+            cuerpo.append(titulo, detalle);
+            if (hayMinimo) cuerpo.append(nivel); // sin mínimo definido, la barra no se muestra
+            cuerpo.append(fila);
             tarjeta.append(cuerpo);
             elLista.append(tarjeta);
         }
     }
 
     async function recargarExistencias() {
-        existencias = await getExistencias(almacenId);
+        const lista = await getExistencias(almacenId);
+        // orden alfabético por nombre (el servidor no garantiza ningún orden)
+        existencias = [...lista].sort((a, b) => a.producto.localeCompare(b.producto, 'es'));
         pintar();
     }
 
@@ -147,12 +160,12 @@
     async function mover(existencia, tipo) {
         mostrarMensaje('', false);
         try {
+            // El usuario lo añade api.js (USUARIO_POR_DEFECTO), porque ya no hay selector
             await postMovimiento({
                 almacenId: almacenId,
                 productoId: existencia.productoId,
                 cantidad: 1,
                 tipo: tipo,
-                usuarioId: null, // TODO: acordar con Sarah si el movimiento puede guardarse sin usuario
             });
             await recargarExistencias();
             avisar(tipo === 'SALIDA' ? 'Salida registrada' : 'Entrada registrada');
@@ -162,7 +175,7 @@
     }
 
     //comprueba que hay ID
-        //Si lo hay carga el título y existencias a la vez con Promise.all
+    //Si lo hay carga el título y existencias a la vez con Promise.all
     async function iniciar() {
         if (!almacenId) {
             mostrarMensaje('Falta el almacén en la dirección. Entra desde la lista de almacenes o escanea el QR.', false);

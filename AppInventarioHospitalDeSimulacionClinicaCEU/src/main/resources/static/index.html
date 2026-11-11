@@ -9,6 +9,9 @@
 </head>
 <body>
 <main class="container py-4" style="max-width: 42rem;">
+    <!-- Volver atrás (solo aparece si hay a dónde volver) -->
+    <button id="volver" type="button" class="btn btn-link text-white p-0 mb-2" hidden>← Volver</button>
+
     <header class="text-center mb-4">
         <h1 class="display-5 fw-bold">Almacenes</h1>
         <p class="lead mb-0">Hospital de simulación clínica</p>
@@ -25,6 +28,22 @@
     const mensaje = document.getElementById('mensaje');
 
     document.getElementById('btn-imprimir').addEventListener('click', descargarInforme);
+
+    // "Volver": retrocede en el historial, como el botón atrás del navegador.
+    // Si no hay historial (por ejemplo, se abrió esta página directamente), usa el
+    // último almacén abierto; y si tampoco hay, el botón no se muestra.
+    const volver = document.getElementById('volver');
+    let ultimoId = null;
+    try {
+        const ultimo = JSON.parse(localStorage.getItem('ultimoAlmacen'));
+        if (ultimo && Number.isFinite(Number(ultimo.id))) ultimoId = Number(ultimo.id);
+    } catch (e) { /* sin datos guardados */ }
+
+    if (history.length > 1 || ultimoId !== null) volver.hidden = false;
+    volver.addEventListener('click', () => {
+        if (history.length > 1) history.back();
+        else location.href = 'almacen.html?id=' + encodeURIComponent(ultimoId);
+    });
 
     async function cargar() {
         try {

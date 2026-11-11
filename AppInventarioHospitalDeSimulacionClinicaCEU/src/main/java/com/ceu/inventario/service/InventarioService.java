@@ -4,6 +4,10 @@ import com.ceu.inventario.dto.AlmacenDTO;
 import com.ceu.inventario.dto.ExistenciaDTO;
 import com.ceu.inventario.dto.MovimientoDTO;
 import com.ceu.inventario.dto.MovimientoRequest;
+import com.ceu.inventario.repository.AlmacenRepository;
+import com.ceu.inventario.repository.ExistenciaRepository;
+import com.ceu.inventario.repository.MovimientoRepository;
+import com.ceu.inventario.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
