@@ -81,7 +81,8 @@ public class InformeSefvice {
 
         try {
             PdfWriter writer = PdfWriter.getInstance(documento, salida);
-            writer.setPageEvent(new CabeceraYPie());
+            writer.setPageEvent(new Cabecera());
+            writer.setPageEvent(new Pie());
             documento.open();
 
             escribirPortada(documento, almacenes, existenciasPorAlmacen);
@@ -241,15 +242,14 @@ public class InformeSefvice {
         }
         tabla.addCell(celda);
     }
-
-    private static class CabeceraYPie extends PdfPageEventHelper {
+    private static class Cabecera extends PdfPageEventHelper {
 
         private static final float ALTO_BANDA = 30;
         private static final String RUTA_LOGO = "/static/img/logo-ceu.png";
 
         private Image logo;   // se carga una sola vez; si no existe el fichero, queda en null
 
-        CabeceraYPie() {
+        Cabecera() {
             try {
                 URL url = InformeSefvice.class.getResource(RUTA_LOGO);
                 if (url != null) {
@@ -288,7 +288,7 @@ public class InformeSefvice {
             fondo.paintShading(PdfShading.simpleAxial(writer, mitad, alto, ancho, alto, MORADO, ROSA));
             fondo.restoreState();
 
-            // --- Textos, logo y pie (por encima del contenido) ---
+            // --- Texto y logo (por encima del contenido) ---
             PdfContentByte encima = writer.getDirectContent();
 
             ColumnText.showTextAligned(encima, Element.ALIGN_LEFT,
@@ -306,24 +306,41 @@ public class InformeSefvice {
                     // si no se puede dibujar el logo, se sigue sin él
                 }
             }
-
-            // Línea fina sobre el pie de página
-            encima.saveState();
-            encima.setColorStroke(BORDE);
-            encima.setLineWidth(0.5f);
-            encima.moveTo(MARGEN, 36);
-            encima.lineTo(ancho - MARGEN, 36);
-            encima.stroke();
-            encima.restoreState();
-
-            // Número de página
-            ColumnText.showTextAligned(encima, Element.ALIGN_CENTER,
-                    new Phrase("Página " + writer.getPageNumber(), PEQUENA),
-                    mitad, 24, 0);
         }
     }
 
+    // ------------------------------------------------------------------
+    // PIE DE CADA PÁGINA
+    // ------------------------------------------------------------------
 
+    /**
+     * OpenPDF llama a onEndPage() al terminar cada página.
+     * Dibuja una línea fina y el número de página abajo, centrado.
+     */
+    private static class Pie extends PdfPageEventHelper {
 
+        private static final float Y_LINEA = 36;
+        private static final float Y_TEXTO = 24;
+
+        @Override
+        public void onEndPage(PdfWriter writer, Document documento) {
+            float ancho = documento.getPageSize().getWidth();
+            PdfContentByte encima = writer.getDirectContent();
+
+            // Línea fina de lado a lado (respetando los márgenes)
+            encima.saveState();
+            encima.setColorStroke(BORDE);
+            encima.setLineWidth(0.5f);
+            encima.moveTo(MARGEN, Y_LINEA);
+            encima.lineTo(ancho - MARGEN, Y_LINEA);
+            encima.stroke();
+            encima.restoreState();
+
+            // Número de página, centrado
+            ColumnText.showTextAligned(encima, Element.ALIGN_CENTER,
+                    new Phrase("Página " + writer.getPageNumber(), PEQUENA),
+                    ancho / 2, Y_TEXTO, 0);
+        }
+    }
 
 }
