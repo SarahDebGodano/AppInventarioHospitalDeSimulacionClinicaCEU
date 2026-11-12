@@ -1,5 +1,6 @@
 package com.ceu.inventario.controller;
 
+import com.ceu.inventario.service.NoEncontradoException;
 import com.ceu.inventario.service.StockInsuficienteException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,18 @@ public class ManejadorErrores {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
+    /** No existe el almacén, el producto o el usuario que pide el movimiento. */
+    @ExceptionHandler(NoEncontradoException.class)
+    public ResponseEntity<Map<String, String>> noEncontrado(NoEncontradoException e) {
+        return error(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    /** Datos incorrectos detectados por el service (cantidad 0, falta destino en un traslado...). */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> argumentoIncorrecto(IllegalArgumentException e) {
+        return error(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
     /** Falla alguna validación de MovimientoRequest (@NotNull, @Min, @Size...). */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> datosNoValidos(MethodArgumentNotValidException e) {
@@ -39,7 +52,7 @@ public class ManejadorErrores {
         return error(HttpStatus.BAD_REQUEST, "La petición no tiene el formato esperado.");
     }
 
-    /** TEMPORAL: mientras los services de Sarah sean "Pendiente", se ve un mensaje claro. */
+    /** TEMPORAL: aún quedan métodos "Pendiente" (UsuariaService.listarUsuarios, InformeSefvice.listarBajoMinimo). */
     @ExceptionHandler(UnsupportedOperationException.class)
     public ResponseEntity<Map<String, String>> pendiente(UnsupportedOperationException e) {
         return error(HttpStatus.NOT_IMPLEMENTED, "Todavía no está implementado en el servidor.");
