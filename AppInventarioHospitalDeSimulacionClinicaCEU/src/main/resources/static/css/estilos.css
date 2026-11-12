@@ -17,8 +17,20 @@
     opacity: 0.6;
 }
 
-/* Aviso que aparece abajo al registrar un movimiento */
+/* Aviso que aparece ARRIBA al registrar un movimiento */
 .aviso-flotante { z-index: 20; }
+
+/* Logotipo CEU sobre una pastilla blanca (el logo es azul y el fondo es morado) */
+.logo-ceu {
+    display: inline-flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 50rem;
+    padding: 0.2rem 1rem;
+    box-shadow: 1px 3px 24px -1px rgba(0, 0, 0, 0.15);
+}
+.logo-ceu img { height: 2.4rem; width: auto; display: block; }
+.logo-ceu[hidden] { display: none; }
 
 /* Quartz usa naranja para "danger". Lo cambiamos por el rosa del tema. */
 :root, [data-bs-theme=light] {

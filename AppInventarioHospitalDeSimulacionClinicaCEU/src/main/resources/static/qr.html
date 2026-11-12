@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Códigos QR · Almacenes</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
+    <link rel="stylesheet" href="css/estilos.css?v=2">
+    <style>
+        .etiquetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+        .etiqueta { background: #fff; color: #212529; border-radius: 0.5rem; padding: 0.75rem; text-align: center; break-inside: avoid; }
+        .etiqueta svg { width: 100%; height: auto; max-width: 200px; }
+        .etiqueta .nombre { font-weight: 700; font-size: 1.05rem; }
+        .etiqueta .descripcion { font-size: 0.85rem; color: #555; }
+        .etiqueta .url { font-size: 0.65rem; color: #666; word-break: break-all; margin-top: 0.25rem; }
+
+        @media print {
+            body { background: #fff !important; background-image: none !important; }
+            .no-imprimir { display: none !important; }
+            .etiquetas { grid-template-columns: repeat(3, 1fr); gap: 0.5cm; }
+            .etiqueta { border: 1px solid #000; }
+        }
+    </style>
+</head>
+<body>
+<main class="container py-4">
+    <div class="no-imprimir">
+        <div class="logo-ceu mb-3"><img src="img/logo-ceu.png" alt="CEU" onerror="this.parentElement.hidden = true"></div>
+        <div><a href="index.html" class="small">← Todos los almacenes</a></div>
+        <h1 class="h2 fw-bold mt-1">Códigos QR</h1>
+        <p>Cada código abre directamente la pantalla de su almacén. Imprímelos y pégalos en cada almacén.</p>
+
+        <div id="mensaje" class="mensaje mensaje-rosa" hidden></div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <label for="base" class="form-label">Dirección de la aplicación</label>
+                <input id="base" type="url" inputmode="url" class="form-control form-control-lg" autocomplete="off" spellcheck="false">
+                <div class="form-text">
+                    La que escribiría alguien en el navegador del móvil, sin barra al final.
+                    Ejemplo: <code>http://192.168.1.50:8080</code>
+                </div>
+                <button id="btn-imprimir" type="button" class="btn btn-primary btn-lg w-100 mt-3">Imprimir códigos</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="etiquetas" class="etiquetas"></div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/qr.js"></script>
+<script>
+    const elBase = document.getElementById('base');
+    const elMensaje = document.getElementById('mensaje');
+    const elEtiquetas = document.getElementById('etiquetas');
+    let almacenes = [];
+
+    // Por defecto, la dirección desde la que se ha abierto esta página
+    elBase.value = location.origin;
+
+    function mostrarMensaje(texto, esError) {
+        elMensaje.textContent = texto;
+        elMensaje.className = 'mensaje ' + (esError ? 'mensaje-morado' : 'mensaje-rosa');
+        elMensaje.hidden = !texto;
+    }
+
+    // Quita espacios y barras finales, y añade http:// si falta
+    function direccionBase() {
+        let b = elBase.value.trim().replace(/\/+$/, '');
+        if (b && !/^https?:\/\//i.test(b)) b = 'http://' + b;
+        return b;
+    }
+
+    function pintar() {
+        const base = direccionBase();
+        elEtiquetas.replaceChildren();
+
+        // Con "localhost" el QR solo funcionaría en este mismo ordenador
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|$|\/)/i.test(base)) {
+            mostrarMensaje('Atención: con "localhost" los QR solo funcionan en este ordenador. ' +
+                'Escribe la dirección o la IP real del servidor antes de imprimir.', false);
+        } else {
+            mostrarMensaje('', false);
+        }
+        if (!base) return;
+
+        for (const a of almacenes) {
+            const url = base + '/almacen.html?id=' + encodeURIComponent(a.id);
+            const etiqueta = document.createElement('div');
+            etiqueta.className = 'etiqueta';
+
+            const qr = document.createElement('div');
+            try {
+                qr.innerHTML = QR.svg(url, 'Código QR de ' + a.nombre);   // SVG generado por qr.js
+            } catch (e) {
+                qr.textContent = 'La dirección es demasiado larga para un QR.';
+            }
+
+            const nombre = document.createElement('div');
+            nombre.className = 'nombre';
+            nombre.textContent = a.nombre;
+
+            const desc = document.createElement('div');
+            desc.className = 'descripcion';
+            desc.textContent = a.descripcion || '';
+
+            const dir = document.createElement('div');
+            dir.className = 'url';
+            dir.textContent = url;
+
+            etiqueta.append(qr, nombre, desc, dir);
+            elEtiquetas.append(etiqueta);
+        }
+    }
+
+    async function iniciar() {
+        try {
+            almacenes = await getAlmacenes();
+            pintar();
+        } catch (e) {
+            mostrarMensaje('No se pudo cargar la lista de almacenes. ' + e.message, true);
+        }
+    }
+
+    elBase.addEventListener('input', pintar);
+    document.getElementById('btn-imprimir').addEventListener('click', () => window.print());
+    iniciar();
+</script>
+</body>
+</html>

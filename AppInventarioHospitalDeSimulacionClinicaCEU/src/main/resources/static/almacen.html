@@ -10,7 +10,9 @@
 <body>
 <main class="container py-3" style="max-width: 42rem;">
     <header class="mb-3">
-        <a href="index.html" class="small">← Todos los almacenes</a>
+        <!-- Si falta el fichero img/logo-ceu.png, la pastilla se oculta sola -->
+        <div class="logo-ceu mb-2"><img src="img/logo-ceu.png" alt="CEU" onerror="this.parentElement.hidden = true"></div>
+        <div><a href="index.html" class="small">← Todos los almacenes</a></div>
         <h1 id="titulo" class="h2 fw-bold mt-1">Almacén</h1>
     </header>
 
@@ -24,11 +26,44 @@
         </div>
     </div>
 
+    <!-- Añadir un producto entero a este almacén -->
+    <button id="btn-anadir" type="button" class="btn btn-primary btn-lg w-100 mb-3">+ Añadir producto</button>
+
+    <form id="form-producto" class="card mb-3" hidden novalidate>
+        <div class="card-body">
+            <h2 class="h5 mb-3">Nuevo producto en este almacén</h2>
+
+            <label for="nuevo-nombre" class="form-label">Nombre</label>
+            <input id="nuevo-nombre" type="text" class="form-control mb-3" maxlength="150" autocomplete="off" required>
+
+            <label for="nuevo-categoria" class="form-label">Categoría</label>
+            <select id="nuevo-categoria" class="form-select mb-3">
+                <option value="">Sin categoría</option>
+            </select>
+
+            <div class="row">
+                <div class="col-6">
+                    <label for="nuevo-cantidad" class="form-label">Unidades</label>
+                    <input id="nuevo-cantidad" type="number" class="form-control mb-3" min="0" step="1" value="0" inputmode="numeric">
+                </div>
+                <div class="col-6">
+                    <label for="nuevo-minimo" class="form-label">Stock mínimo</label>
+                    <input id="nuevo-minimo" type="number" class="form-control mb-3" min="0" step="1" value="0" inputmode="numeric">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button id="btn-guardar" type="submit" class="btn btn-primary flex-fill">Guardar</button>
+                <button id="btn-cancelar" type="button" class="btn btn-outline-primary flex-fill">Cancelar</button>
+            </div>
+        </div>
+    </form>
+
     <div id="productos"></div>
 </main>
 
-<!-- Mensaje flotante de abajo (oculto por defecto) -->
-<div id="aviso" class="aviso-flotante alert alert-dark position-fixed bottom-0 start-50 translate-middle-x mb-3 py-2 px-4" role="status" hidden></div>
+<!-- Mensaje flotante de ARRIBA (oculto por defecto) -->
+<div id="aviso" class="aviso-flotante alert alert-dark position-fixed top-0 start-50 translate-middle-x mt-3 py-2 px-4" role="status" hidden></div>
 
 <script src="js/api.js"></script>
 <script>
@@ -40,9 +75,17 @@
     const elBuscador = document.getElementById('buscador');
     const elLista = document.getElementById('productos');
     const elAviso = document.getElementById('aviso');
+    const elBtnAnadir = document.getElementById('btn-anadir');
+    const elForm = document.getElementById('form-producto');
+    const elBtnGuardar = document.getElementById('btn-guardar');
+    const elNombreNuevo = document.getElementById('nuevo-nombre');
+    const elCategoriaNueva = document.getElementById('nuevo-categoria');
+    const elCantidadNueva = document.getElementById('nuevo-cantidad');
+    const elMinimoNuevo = document.getElementById('nuevo-minimo');
 
     let existencias = []; //lista completa de productos del almacen
     let temporizadorAviso; //ocultar el flotante tras 2 segs
+    let nombreAlmacen = 'este almacén'; //para el texto de confirmación al quitar un producto
 
     //rosa == false
     //morado == true
@@ -50,6 +93,7 @@
         elMensaje.textContent = texto;
         elMensaje.className = 'mensaje ' + (esError ? 'mensaje-morado' : 'mensaje-rosa');
         elMensaje.hidden = !texto;
+        if (texto) elMensaje.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     //muestra el aviso de 2 segs
@@ -66,9 +110,22 @@
         if (a) {
             elTitulo.textContent = a.nombre;
             document.title = a.nombre + ' · Inventario';
-            // Se recuerda para que la lista de almacenes ofrezca "Volver a ..."
-            try { localStorage.setItem('ultimoAlmacen', JSON.stringify({ id: a.id, nombre: a.nombre })); } catch (e) { /* sin persistencia */ }
+            nombreAlmacen = a.nombre;
         }
+    }
+
+    // Rellena el desplegable de categorías del formulario "Añadir producto".
+    // Si falla, el formulario sigue funcionando con "Sin categoría".
+    async function cargarCategorias() {
+        try {
+            const categorias = await getCategorias();
+            for (const c of categorias) {
+                const op = document.createElement('option');
+                op.value = c.id;
+                op.textContent = c.nombre;
+                elCategoriaNueva.append(op);
+            }
+        } catch (e) { /* sin categorías */ }
     }
 
     //crea elemento HTML en una línea (así un nombre de producto con símbolos raros no se interpreta como código)
@@ -141,9 +198,18 @@
             mas.addEventListener('click', () => mover(e, 'ENTRADA'));
 
             fila.append(menos, numero, mas);
+
+            // Quitar el producto entero de este almacén
+            const quitar = crear('button', 'btn btn-outline-primary btn-quitar', 'Quitar producto');
+            quitar.type = 'button';
+            quitar.setAttribute('aria-label', 'Quitar ' + e.producto + ' de este almacén');
+            quitar.addEventListener('click', () => quitarProducto(e));
+            const pie = crear('div', 'd-flex justify-content-end mt-3');
+            pie.append(quitar);
+
             cuerpo.append(titulo, detalle);
             if (hayMinimo) cuerpo.append(nivel); // sin mínimo definido, la barra no se muestra
-            cuerpo.append(fila);
+            cuerpo.append(fila, pie);
             tarjeta.append(cuerpo);
             elLista.append(tarjeta);
         }
@@ -174,6 +240,68 @@
         }
     }
 
+    //Quita el producto entero de este almacén (pide confirmación porque se pierden sus unidades)
+    async function quitarProducto(existencia) {
+        const ok = confirm('¿Quitar «' + existencia.producto + '» de ' + nombreAlmacen + '?\n' +
+            'Se borran sus ' + existencia.cantidad + ' unidades registradas en este almacén.');
+        if (!ok) return;
+        mostrarMensaje('', false);
+        try {
+            await deleteProducto(almacenId, existencia.productoId);
+            await recargarExistencias();
+            avisar('Producto quitado');
+        } catch (err) {
+            mostrarMensaje('No se pudo quitar el producto. ' + err.message, true);
+        }
+    }
+
+    //Formulario "Añadir producto"
+    function numeroNoNegativo(el) {
+        const n = parseInt(el.value, 10);
+        return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+
+    elBtnAnadir.addEventListener('click', () => {
+        elForm.hidden = !elForm.hidden;
+        if (!elForm.hidden) {
+            elForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            elNombreNuevo.focus();
+        }
+    });
+
+    document.getElementById('btn-cancelar').addEventListener('click', () => {
+        elForm.reset();
+        elForm.hidden = true;
+    });
+
+    elForm.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        mostrarMensaje('', false);
+        const nombre = elNombreNuevo.value.trim();
+        if (!nombre) {
+            mostrarMensaje('Escribe el nombre del producto.', true);
+            elNombreNuevo.focus();
+            return;
+        }
+        elBtnGuardar.disabled = true;   // evita guardarlo dos veces si se pulsa rápido
+        try {
+            await postProducto(almacenId, {
+                nombre: nombre,
+                categoriaId: elCategoriaNueva.value ? Number(elCategoriaNueva.value) : null,
+                cantidad: numeroNoNegativo(elCantidadNueva),
+                stockMinimo: numeroNoNegativo(elMinimoNuevo),
+            });
+            elForm.reset();
+            elForm.hidden = true;
+            await recargarExistencias();
+            avisar('Producto añadido');
+        } catch (err) {
+            mostrarMensaje('No se pudo añadir el producto. ' + err.message, true);
+        } finally {
+            elBtnGuardar.disabled = false;
+        }
+    });
+
     //comprueba que hay ID
     //Si lo hay carga el título y existencias a la vez con Promise.all
     async function iniciar() {
@@ -182,7 +310,7 @@
             return;
         }
         try {
-            await Promise.all([cargarTitulo(), recargarExistencias()]);
+            await Promise.all([cargarTitulo(), recargarExistencias(), cargarCategorias()]);
         } catch (err) {
             mostrarMensaje('No se pudo cargar el almacén. ' + err.message, true);
         }
