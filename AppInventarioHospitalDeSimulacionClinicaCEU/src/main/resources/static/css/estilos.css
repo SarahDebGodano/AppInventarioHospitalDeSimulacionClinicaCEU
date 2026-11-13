@@ -17,20 +17,24 @@
     opacity: 0.6;
 }
 
-/* Aviso que aparece ARRIBA al registrar un movimiento */
-.aviso-flotante { z-index: 20; }
-
-/* Logotipo CEU sobre una pastilla blanca (el logo es azul y el fondo es morado) */
-.logo-ceu {
-    display: inline-flex;
-    align-items: center;
-    background: #fff;
-    border-radius: 50rem;
-    padding: 0.2rem 1rem;
-    box-shadow: 1px 3px 24px -1px rgba(0, 0, 0, 0.15);
+/* Aviso que aparece ARRIBA al registrar un movimiento (píldora rosa de una sola línea) */
+.aviso-flotante {
+    position: fixed;
+    z-index: 30;
+    top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 2rem);
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
+    background: rgba(200, 30, 110, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    color: #fff;
+    font-weight: 500;
+    text-align: center;
 }
-.logo-ceu img { height: 2.4rem; width: auto; display: block; }
-.logo-ceu[hidden] { display: none; }
 
 /* Quartz usa naranja para "danger". Lo cambiamos por el rosa del tema. */
 :root, [data-bs-theme=light] {
@@ -53,3 +57,56 @@
 .mensaje[hidden] { display: none; }
 .mensaje-rosa { --color-mensaje: #e83283; }
 .mensaje-morado { --color-mensaje: #6f2dbd; }
+
+/* ---------- Botones de volver: burbuja rosa traslúcida ---------- */
+.burbuja {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    padding: 0.5rem 1.2rem 0.5rem 0.55rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(255, 110, 185, 0.62), rgba(232, 50, 131, 0.5));
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 0 6px 18px rgba(232, 50, 131, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
+    backdrop-filter: blur(10px) saturate(1.4);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    text-shadow: 0 1px 2px rgba(120, 10, 70, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+/* círculo blanco brillante con la flecha dentro */
+.burbuja svg {
+    flex: none;
+    box-sizing: content-box;
+    width: 1.05rem;
+    height: 1.05rem;
+    padding: 0.4rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+.burbuja:hover, .burbuja:focus-visible {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(255, 120, 192, 0.78), rgba(232, 50, 131, 0.66));
+    box-shadow: 0 8px 22px rgba(232, 50, 131, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+}
+.burbuja:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { .burbuja { transition: none; } }
+
+/* ---------- Logotipo (en una "píldora" blanca para que se vea con cualquier color de logo) ---------- */
+.logo-ceu {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.9rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.logo-ceu img { height: 38px; width: auto; display: block; }
+.logo-ceu-peq img { height: 28px; }

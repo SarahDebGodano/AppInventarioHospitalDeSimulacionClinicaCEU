@@ -25,10 +25,10 @@
 <body>
 <main class="container py-4">
     <div class="no-imprimir">
-        <div class="logo-ceu mb-3"><img src="img/logo-ceu.png" alt="CEU" onerror="this.parentElement.hidden = true"></div>
-        <div><a href="index.html" class="small">← Todos los almacenes</a></div>
+        <a href="index.html" class="burbuja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg> Todos los almacenes</a>
         <h1 class="h2 fw-bold mt-1">Códigos QR</h1>
-        <p>Cada código abre directamente la pantalla de su almacén. Imprímelos y pégalos en cada almacén.</p>
+        <p class="mb-1">Cada código abre directamente la pantalla de su almacén. Imprímelos y pégalos en cada almacén.</p>
+        <p id="resumen" class="small"></p>
 
         <div id="mensaje" class="mensaje mensaje-rosa" hidden></div>
 
@@ -36,9 +36,9 @@
             <div class="card-body">
                 <label for="base" class="form-label">Dirección de la aplicación</label>
                 <input id="base" type="url" inputmode="url" class="form-control form-control-lg" autocomplete="off" spellcheck="false">
-                <div class="form-text">
+                <div id="ayuda-base" class="form-text">
                     La que escribiría alguien en el navegador del móvil, sin barra al final.
-                    Ejemplo: <code>http://192.168.1.50:8080</code>
+                    Ejemplo: <code>http://inventario.ceu.es</code>
                 </div>
                 <button id="btn-imprimir" type="button" class="btn btn-primary btn-lg w-100 mt-3">Imprimir códigos</button>
             </div>
@@ -51,13 +51,16 @@
 <script src="js/api.js"></script>
 <script src="js/qr.js"></script>
 <script>
+    // Dirección oficial de la aplicación. Rellénala UNA sola vez, cuando Informática os dé la
+    // dirección fija (por ejemplo 'http://inventario.ceu.es'). Con ella puesta, los QR salen
+    // idénticos desde cualquier ordenador y el campo queda bloqueado.
+    const DIRECCION_OFICIAL = '';
+
     const elBase = document.getElementById('base');
     const elMensaje = document.getElementById('mensaje');
+    const elResumen = document.getElementById('resumen');
     const elEtiquetas = document.getElementById('etiquetas');
     let almacenes = [];
-
-    // Por defecto, la dirección desde la que se ha abierto esta página
-    elBase.value = location.origin;
 
     function mostrarMensaje(texto, esError) {
         elMensaje.textContent = texto;
@@ -65,28 +68,50 @@
         elMensaje.hidden = !texto;
     }
 
-    // Quita espacios y barras finales, y añade http:// si falta
-    function direccionBase() {
-        let b = elBase.value.trim().replace(/\/+$/, '');
-        if (b && !/^https?:\/\//i.test(b)) b = 'http://' + b;
-        return b;
+    // Deja la dirección siempre escrita igual: añade http:// si falta, pone el servidor en
+    // minúsculas y quita barras finales y puertos por defecto. Así el QR no cambia por detalles.
+    function normalizar(texto) {
+        let b = texto.trim();
+        if (!b) return '';
+        if (!/^https?:\/\//i.test(b)) b = 'http://' + b;
+        try {
+            const u = new URL(b);
+            return u.origin + u.pathname.replace(/\/+$/, '');
+        } catch (e) {
+            return b.replace(/\/+$/, '');
+        }
     }
 
     function pintar() {
-        const base = direccionBase();
+        const base = normalizar(elBase.value);
         elEtiquetas.replaceChildren();
 
-        // Con "localhost" el QR solo funcionaría en este mismo ordenador
-        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|$|\/)/i.test(base)) {
-            mostrarMensaje('Atención: con "localhost" los QR solo funcionan en este ordenador. ' +
-                'Escribe la dirección o la IP real del servidor antes de imprimir.', false);
-        } else {
-            mostrarMensaje('', false);
+        // Un único QR por almacén, aunque la lista viniera con repetidos
+        const unicos = [...new Map(almacenes.map(a => [a.id, a])).values()];
+        elResumen.textContent = unicos.length + ' almacenes → ' + unicos.length + ' códigos (uno por almacén)';
+
+        const avisos = [];
+        let host = '';
+        try { host = new URL(base).hostname; } catch (e) { /* dirección aún incompleta */ }
+        if (!DIRECCION_OFICIAL) {
+            avisos.push('Aún no hay dirección oficial fijada en qr.html (DIRECCION_OFICIAL): estos QR son provisionales.');
         }
+        if (host === 'localhost' || host === '127.0.0.1') {
+            avisos.push('Con "localhost" los QR solo funcionan en este ordenador.');
+        } else if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+            avisos.push('La dirección es una IP, que puede cambiar. Para QR definitivos pide un nombre fijo a Informática.');
+        }
+        if (unicos.some(a => !a.codigoQr)) {
+            avisos.push('Algunos almacenes no tienen código fijo (codigo_qr): su QR usa el número de almacén y no es definitivo.');
+        }
+        mostrarMensaje(avisos.join(' '), false);
         if (!base) return;
 
-        for (const a of almacenes) {
-            const url = base + '/almacen.html?id=' + encodeURIComponent(a.id);
+        for (const a of unicos) {
+            // Con código fijo, el QR no depende del número interno del almacén
+            const clave = a.codigoQr ? 'c=' + encodeURIComponent(a.codigoQr) : 'id=' + encodeURIComponent(a.id);
+            const url = base + '/almacen.html?' + clave;
+
             const etiqueta = document.createElement('div');
             etiqueta.className = 'etiqueta';
 
@@ -115,6 +140,14 @@
     }
 
     async function iniciar() {
+        if (DIRECCION_OFICIAL) {
+            elBase.value = DIRECCION_OFICIAL;
+            elBase.readOnly = true;
+            document.getElementById('ayuda-base').textContent =
+                'Dirección oficial, fijada en qr.html (DIRECCION_OFICIAL). Para cambiarla, edita ese fichero.';
+        } else {
+            elBase.value = location.origin;   // provisional: la dirección desde la que se abrió esta página
+        }
         try {
             almacenes = await getAlmacenes();
             pintar();
