@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Historial · Inventario</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
+    <link rel="stylesheet" href="css/estilos.css?v=3">
+</head>
+<body>
+<main class="container py-3" style="max-width: 42rem;">
+    <header class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a id="volver" href="index.html" class="burbuja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg> Volver al almacén</a>
+            <span class="logo-ceu logo-ceu-peq"><img src="img/logo-ceu.png" alt="CEU San Pablo" onerror="this.parentElement.remove()"></span>
+        </div>
+        <h1 id="titulo" class="h2 fw-bold mt-1">Historial</h1>
+        <p class="mb-0">Últimos movimientos, del más reciente al más antiguo.</p>
+    </header>
+
+    <!-- Avisos y errores (oculto por defecto) -->
+    <div id="mensaje" class="mensaje mensaje-morado" hidden></div>
+
+    <div id="movimientos"></div>
+</main>
+
+<script src="js/api.js"></script>
+<script>
+    const almacenId = Number(new URLSearchParams(location.search).get('id'));
+
+    const elTitulo = document.getElementById('titulo');
+    const elMensaje = document.getElementById('mensaje');
+    const elLista = document.getElementById('movimientos');
+
+    // Cómo se enseña cada tipo de movimiento: texto, color de la etiqueta y cómo se escribe la cantidad
+    const TIPOS = {
+        ENTRADA:  { texto: 'Entrada',  color: 'text-bg-success', cantidad: n => '+' + n },
+        SALIDA:   { texto: 'Salida',   color: 'text-bg-danger',  cantidad: n => '−' + n },
+        AJUSTE:   { texto: 'Recuento', color: 'text-bg-warning', cantidad: n => '= ' + n },
+        TRASLADO: { texto: 'Traslado', color: 'text-bg-info',    cantidad: n => String(n) },
+    };
+
+    function mostrarError(texto) {
+        elMensaje.textContent = texto;
+        elMensaje.hidden = !texto;
+    }
+
+    //crea elemento HTML en una línea (así un nombre de producto con símbolos raros no se interpreta como código)
+    function crear(etiqueta, clases, texto) {
+        const el = document.createElement(etiqueta);
+        if (clases) el.className = clases;
+        if (texto !== undefined) el.textContent = texto;
+        return el;
+    }
+
+    function formatearFecha(iso) {
+        const f = new Date(iso);
+        if (isNaN(f)) return '';
+        return f.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function pintar(movimientos) {
+        elLista.replaceChildren();
+        if (movimientos.length === 0) {
+            elLista.append(crear('p', 'text-center py-4', 'Este almacén aún no tiene movimientos.'));
+            return;
+        }
+        for (const m of movimientos) {
+            const tipo = TIPOS[m.tipo] || { texto: m.tipo, color: 'text-bg-secondary', cantidad: n => String(n) };
+
+            const tarjeta = crear('div', 'card mb-2');
+            const cuerpo = crear('div', 'card-body py-3 mov');
+
+            const info = crear('div', 'mov-info');
+            const nombre = crear('div', 'fw-bold', m.producto);
+            nombre.append(crear('span', 'badge ms-2 ' + tipo.color, tipo.texto));
+
+            const detalle = [m.usuario, formatearFecha(m.fecha)].filter(Boolean).join(' · ');
+            const linea = crear('div', 'small text-body-secondary', detalle);
+            info.append(nombre, linea);
+            // Si el servidor indica el almacén de destino de un traslado, se enseña
+            if (m.almacenDestino) info.append(crear('div', 'small', 'Destino: ' + m.almacenDestino));
+
+            cuerpo.append(info, crear('div', 'mov-cantidad', tipo.cantidad(m.cantidad)));
+            tarjeta.append(cuerpo);
+            elLista.append(tarjeta);
+        }
+    }
+
+    async function iniciar() {
+        if (!almacenId) {
+            mostrarError('Falta el almacén en la dirección. Entra desde la lista de almacenes.');
+            return;
+        }
+        document.getElementById('volver').href = 'almacen.html?id=' + encodeURIComponent(almacenId);
+        try {
+            const [almacenes, movimientos] = await Promise.all([getAlmacenes(), getHistorial(almacenId)]);
+            const a = almacenes.find(x => x.id === almacenId);
+            if (a) {
+                elTitulo.textContent = 'Historial · ' + a.nombre;
+                document.title = 'Historial · ' + a.nombre;
+            }
+            pintar(movimientos);
+        } catch (err) {
+            mostrarError('No se pudo cargar el historial. ' + err.message);
+        }
+    }
+    iniciar();
+</script>
+</body>
+</html>

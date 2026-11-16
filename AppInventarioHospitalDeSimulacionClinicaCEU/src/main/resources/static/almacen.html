@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Almacén · Inventario</title>
     <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
-    <link rel="stylesheet" href="css/estilos.css?v=2">
+    <link rel="stylesheet" href="css/estilos.css?v=3">
 </head>
 <body>
 <main class="container py-3" style="max-width: 42rem;">
@@ -20,6 +20,13 @@
     <!-- Aquí se muestran los avisos y errores (oculto por defecto) -->
     <div id="mensaje" class="mensaje mensaje-rosa" hidden></div>
 
+    <!-- Acciones del almacén entero -->
+    <div class="barra-acciones">
+        <button id="btn-anadir" class="burbuja burbuja-txt" type="button">+ Añadir producto</button>
+        <a id="btn-historial" class="burbuja burbuja-txt" href="#" aria-disabled="true">Historial</a>
+        <button id="btn-deshacer" class="burbuja burbuja-txt" type="button" disabled>Deshacer</button>
+    </div>
+
     <div class="card controles-fijos mb-3">
         <div class="card-body">
             <label for="buscador" class="form-label">Buscar producto</label>
@@ -33,6 +40,96 @@
 <!-- Mensaje flotante de arriba (oculto por defecto) -->
 <div id="aviso" class="aviso-flotante" role="status" hidden></div>
 
+<!-- ============ DIÁLOGO 1: añadir producto ============ -->
+<dialog id="dlg-anadir" class="dlg" aria-labelledby="anadir-titulo">
+    <form id="form-anadir" novalidate>
+        <h2 id="anadir-titulo">Añadir producto</h2>
+        <p class="dlg-error" id="anadir-error" role="alert" hidden></p>
+
+        <label for="anadir-nombre" class="form-label">Nombre</label>
+        <input id="anadir-nombre" type="text" class="form-control mb-3" maxlength="150" autocomplete="off" required>
+
+        <label for="anadir-categoria" class="form-label">Categoría</label>
+        <select id="anadir-categoria" class="form-select mb-3">
+            <option value="">Sin categoría</option>
+        </select>
+
+        <div class="row">
+            <div class="col-6">
+                <label for="anadir-cantidad" class="form-label">Unidades</label>
+                <input id="anadir-cantidad" type="number" class="form-control mb-3" min="0" step="1" value="0" inputmode="numeric">
+            </div>
+            <div class="col-6">
+                <label for="anadir-minimo" class="form-label">Stock mínimo</label>
+                <input id="anadir-minimo" type="number" class="form-control mb-3" min="0" step="1" value="0" inputmode="numeric">
+            </div>
+        </div>
+
+        <div class="dlg-botones">
+            <button type="button" class="burbuja burbuja-txt burbuja-peq" data-cerrar>Cancelar</button>
+            <button id="anadir-guardar" type="submit" class="burbuja burbuja-txt">Guardar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ DIÁLOGO 2: quitar producto ============ -->
+<dialog id="dlg-quitar" class="dlg" aria-labelledby="quitar-titulo">
+    <form id="form-quitar" novalidate>
+        <h2 id="quitar-titulo">Quitar producto</h2>
+        <p class="dlg-error" id="quitar-error" role="alert" hidden></p>
+        <p id="quitar-texto"></p>
+        <div class="dlg-botones">
+            <button type="button" class="burbuja burbuja-txt burbuja-peq" data-cerrar>Cancelar</button>
+            <button id="quitar-confirmar" type="submit" class="burbuja burbuja-txt">Quitar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ DIÁLOGO 3: trasladar a otro almacén ============ -->
+<dialog id="dlg-trasladar" class="dlg" aria-labelledby="trasladar-titulo">
+    <form id="form-trasladar" novalidate>
+        <h2 id="trasladar-titulo">Trasladar producto</h2>
+        <p class="dlg-error" id="trasladar-error" role="alert" hidden></p>
+        <p id="trasladar-texto" class="mb-3"></p>
+
+        <label for="trasladar-destino" class="form-label">Almacén de destino</label>
+        <select id="trasladar-destino" class="form-select mb-3"></select>
+
+        <label for="trasladar-cantidad" class="form-label">Unidades a trasladar</label>
+        <input id="trasladar-cantidad" type="number" class="form-control mb-3" min="1" step="1" inputmode="numeric">
+
+        <div class="dlg-botones">
+            <button type="button" class="burbuja burbuja-txt burbuja-peq" data-cerrar>Cancelar</button>
+            <button id="trasladar-confirmar" type="submit" class="burbuja burbuja-txt">Trasladar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ DIÁLOGO 4: varias unidades de golpe / recuento ============ -->
+<dialog id="dlg-cantidad" class="dlg" aria-labelledby="cantidad-titulo">
+    <form id="form-cantidad" novalidate>
+        <h2 id="cantidad-titulo">Cambiar unidades</h2>
+        <p class="dlg-error" id="cantidad-error" role="alert" hidden></p>
+        <p id="cantidad-ayuda" class="mb-3"></p>
+
+        <!-- Solo en "Varias unidades": ¿entran o salen? -->
+        <div id="cantidad-sentido" class="btn-group w-100 mb-3" role="group" aria-label="Entrada o salida">
+            <input type="radio" class="btn-check" name="sentido" id="sentido-entrada" value="ENTRADA" checked>
+            <label class="btn btn-outline-primary" for="sentido-entrada">Entrada (+)</label>
+            <input type="radio" class="btn-check" name="sentido" id="sentido-salida" value="SALIDA">
+            <label class="btn btn-outline-primary" for="sentido-salida">Salida (−)</label>
+        </div>
+
+        <label id="cantidad-etiqueta" for="cantidad-numero" class="form-label">Unidades</label>
+        <input id="cantidad-numero" type="number" class="form-control form-control-lg mb-3" min="0" step="1" inputmode="numeric">
+
+        <div class="dlg-botones">
+            <button type="button" class="burbuja burbuja-txt burbuja-peq" data-cerrar>Cancelar</button>
+            <button id="cantidad-confirmar" type="submit" class="burbuja burbuja-txt">Guardar</button>
+        </div>
+    </form>
+</dialog>
+
 <script src="js/api.js"></script>
 <script>
     const params = new URLSearchParams(location.search);
@@ -44,9 +141,14 @@
     const elBuscador = document.getElementById('buscador');
     const elLista = document.getElementById('productos');
     const elAviso = document.getElementById('aviso');
+    const elBtnAnadir = document.getElementById('btn-anadir');
+    const elBtnHistorial = document.getElementById('btn-historial');
+    const elBtnDeshacer = document.getElementById('btn-deshacer');
 
     let existencias = []; //lista completa de productos del almacen
+    let nombreAlmacen = 'este almacén';
     let temporizadorAviso; //ocultar el flotante tras 2 segs
+    let ultimo = null;     //último movimiento hecho, con el movimiento contrario preparado para "Deshacer"
 
     //rosa == false
     //morado == true
@@ -68,6 +170,7 @@
         const almacenes = await getAlmacenes();
         const a = almacenes.find(x => x.id === almacenId);
         if (a) {
+            nombreAlmacen = a.nombre;
             elTitulo.textContent = a.nombre;
             document.title = a.nombre + ' · Inventario';
         }
@@ -79,6 +182,15 @@
         if (clases) el.className = clases;
         if (texto !== undefined) el.textContent = texto;
         return el;
+    }
+
+    //botón pequeño de las tarjetas (Varias, Recuento, Trasladar, Quitar)
+    function botonAccion(texto, etiquetaAria, alPulsar) {
+        const b = crear('button', 'burbuja burbuja-txt burbuja-peq', texto);
+        b.type = 'button';
+        b.setAttribute('aria-label', etiquetaAria);
+        b.addEventListener('click', alPulsar);
+        return b;
     }
 
     //Función principal
@@ -104,6 +216,7 @@
         * 4. barra de nivel: ancho= cantidad/(mínimox2) --> limitado por 100%
         *    solo si hay mínimo definido (stockMinimo > 0); si es 0 no tiene sentido
         * 5. fila de - num + --> si la cantidad es 0 - se desactiva ; los dos llaman a mover() con SALIDA o ENTRADA
+        * 6. fila de botones: Varias unidades, Recuento, Trasladar y Quitar
         * */
         for (const e of visibles) {
             const bajo = e.bajoMinimo;
@@ -143,9 +256,20 @@
             mas.addEventListener('click', () => mover(e, 'ENTRADA'));
 
             fila.append(menos, numero, mas);
+
+            const acciones = crear('div', 'acciones-producto');
+            const btnTrasladar = botonAccion('Trasladar', 'Trasladar ' + e.producto + ' a otro almacén', () => abrirTrasladar(e));
+            btnTrasladar.disabled = e.cantidad <= 0;   // sin unidades no hay nada que trasladar
+            acciones.append(
+                botonAccion('Varias unidades', 'Sumar o restar varias unidades de ' + e.producto, () => abrirCantidad(e, 'varias')),
+                botonAccion('Recuento', 'Hacer recuento de ' + e.producto, () => abrirCantidad(e, 'recuento')),
+                btnTrasladar,
+                botonAccion('Quitar', 'Quitar ' + e.producto + ' de este almacén', () => abrirQuitar(e))
+            );
+
             cuerpo.append(titulo, detalle);
             if (hayMinimo) cuerpo.append(nivel); // sin mínimo definido, la barra no se muestra
-            cuerpo.append(fila);
+            cuerpo.append(fila, acciones);
             tarjeta.append(cuerpo);
             elLista.append(tarjeta);
         }
@@ -158,23 +282,305 @@
         pintar();
     }
 
+    /* ---------- Movimientos y "Deshacer" ---------- */
+
+    //Activa o desactiva el botón Deshacer según haya algo que deshacer
+    function actualizarDeshacer() {
+        elBtnDeshacer.disabled = !ultimo;
+        elBtnDeshacer.title = ultimo ? 'Deshacer: ' + ultimo.texto : '';
+    }
+
+    //Envía un movimiento, recuerda cómo deshacerlo y refresca la lista.
+    //"inverso" es el movimiento contrario. Si falla, lanza el error para que lo muestre quien llama.
+    async function ejecutar(movimiento, inverso, textoAviso, nombreProducto) {
+        // El usuario lo añade api.js (USUARIO_POR_DEFECTO), porque ya no hay selector
+        await postMovimiento(movimiento);
+        ultimo = { inverso: inverso, texto: textoAviso + ' de ' + nombreProducto };
+        actualizarDeshacer();
+        await recargarExistencias();
+        avisar(textoAviso);
+    }
+
     //lo que pasa al pisar -/+
     async function mover(existencia, tipo) {
         mostrarMensaje('', false);
+        const contrario = tipo === 'SALIDA' ? 'ENTRADA' : 'SALIDA';
         try {
-            // El usuario lo añade api.js (USUARIO_POR_DEFECTO), porque ya no hay selector
-            await postMovimiento({
-                almacenId: almacenId,
-                productoId: existencia.productoId,
-                cantidad: 1,
-                tipo: tipo,
-            });
-            await recargarExistencias();
-            avisar(tipo === 'SALIDA' ? 'Salida registrada' : 'Entrada registrada');
+            await ejecutar(
+                { almacenId: almacenId, productoId: existencia.productoId, cantidad: 1, tipo: tipo },
+                { almacenId: almacenId, productoId: existencia.productoId, cantidad: 1, tipo: contrario },
+                tipo === 'SALIDA' ? 'Salida registrada' : 'Entrada registrada',
+                existencia.producto);
         } catch (err) {
             mostrarMensaje('No se pudo registrar el movimiento. ' + err.message, true);
         }
     }
+
+    //Botón Deshacer: manda el movimiento contrario al último que se hizo
+    async function deshacer() {
+        if (!ultimo) return;
+        const pendiente = ultimo;
+        elBtnDeshacer.disabled = true;    // evita pulsarlo dos veces seguidas
+        mostrarMensaje('', false);
+        try {
+            await postMovimiento(pendiente.inverso);
+            ultimo = null;
+            actualizarDeshacer();
+            await recargarExistencias();
+            avisar('Movimiento deshecho');
+        } catch (err) {
+            actualizarDeshacer();
+            mostrarMensaje('No se pudo deshacer. ' + err.message, true);
+        }
+    }
+
+    /* ---------- Utilidades de los diálogos ---------- */
+
+    function errorDialogo(id, texto) {
+        const el = document.getElementById(id);
+        el.textContent = texto || '';
+        el.hidden = !texto;
+    }
+
+    //Número entero >= minimo, o null si lo escrito no vale
+    function leerEntero(texto, minimo) {
+        const t = String(texto).trim();
+        if (!/^\d+$/.test(t)) return null;
+        const n = parseInt(t, 10);
+        return n >= minimo ? n : null;
+    }
+
+    //Todos los botones "Cancelar" cierran su diálogo
+    document.querySelectorAll('dialog [data-cerrar]').forEach(b =>
+        b.addEventListener('click', () => b.closest('dialog').close()));
+
+    /* ---------- Diálogo 1: añadir producto ---------- */
+    const dlgAnadir = document.getElementById('dlg-anadir');
+    const formAnadir = document.getElementById('form-anadir');
+    const elAnadirNombre = document.getElementById('anadir-nombre');
+    const elAnadirCategoria = document.getElementById('anadir-categoria');
+    const elAnadirCantidad = document.getElementById('anadir-cantidad');
+    const elAnadirMinimo = document.getElementById('anadir-minimo');
+    const elAnadirGuardar = document.getElementById('anadir-guardar');
+    let categoriasCargadas = false;
+
+    //Rellena el desplegable la primera vez. Si falla, queda solo "Sin categoría".
+    async function cargarCategorias() {
+        if (categoriasCargadas) return;
+        try {
+            for (const c of await getCategorias()) {
+                const op = document.createElement('option');
+                op.value = c.id;
+                op.textContent = c.nombre;
+                elAnadirCategoria.append(op);
+            }
+            categoriasCargadas = true;
+        } catch (err) { /* sin categorías */ }
+    }
+
+    elBtnAnadir.addEventListener('click', () => {
+        formAnadir.reset();
+        errorDialogo('anadir-error', '');
+        dlgAnadir.showModal();
+        elAnadirNombre.focus();
+        cargarCategorias();
+    });
+
+    formAnadir.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        errorDialogo('anadir-error', '');
+        const nombre = elAnadirNombre.value.trim();
+        const cantidad = leerEntero(elAnadirCantidad.value, 0);
+        const minimo = leerEntero(elAnadirMinimo.value, 0);
+        if (!nombre) { errorDialogo('anadir-error', 'Escribe el nombre del producto.'); elAnadirNombre.focus(); return; }
+        if (cantidad === null || minimo === null) {
+            errorDialogo('anadir-error', 'Las unidades y el mínimo deben ser números enteros (0 o más).');
+            return;
+        }
+        elAnadirGuardar.disabled = true;   // evita guardarlo dos veces si se pulsa rápido
+        try {
+            await crearProducto(almacenId, {
+                nombre: nombre,
+                categoriaId: elAnadirCategoria.value ? Number(elAnadirCategoria.value) : null,
+                cantidad: cantidad,
+                stockMinimo: minimo,
+            });
+            dlgAnadir.close();
+            elBuscador.value = '';          // para que el producto nuevo se vea en la lista
+            ultimo = null;                  // lo anterior ya no se puede deshacer con seguridad
+            actualizarDeshacer();
+            await recargarExistencias();
+            avisar('Producto añadido');
+        } catch (err) {
+            errorDialogo('anadir-error', err.message);   // incluye el "ya existe" (409) del servidor
+        } finally {
+            elAnadirGuardar.disabled = false;
+        }
+    });
+
+    /* ---------- Diálogo 2: quitar producto ---------- */
+    const dlgQuitar = document.getElementById('dlg-quitar');
+    const formQuitar = document.getElementById('form-quitar');
+    const elQuitarConfirmar = document.getElementById('quitar-confirmar');
+    let porQuitar = null;
+
+    function abrirQuitar(e) {
+        porQuitar = e;
+        errorDialogo('quitar-error', '');
+        document.getElementById('quitar-texto').textContent =
+            '¿Quitar «' + e.producto + '» de ' + nombreAlmacen + '? Se borran sus ' + e.cantidad +
+            ' unidades de este almacén. El historial de movimientos se conserva.';
+        dlgQuitar.showModal();
+    }
+
+    formQuitar.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        if (!porQuitar) return;
+        errorDialogo('quitar-error', '');
+        elQuitarConfirmar.disabled = true;
+        try {
+            await eliminarExistencia(almacenId, porQuitar.productoId);
+            dlgQuitar.close();
+            porQuitar = null;
+            ultimo = null;                  // el producto ya no está: no se puede deshacer lo anterior
+            actualizarDeshacer();
+            await recargarExistencias();
+            avisar('Producto quitado');
+        } catch (err) {
+            errorDialogo('quitar-error', err.message);
+        } finally {
+            elQuitarConfirmar.disabled = false;
+        }
+    });
+
+    /* ---------- Diálogo 3: trasladar a otro almacén ---------- */
+    const dlgTrasladar = document.getElementById('dlg-trasladar');
+    const formTrasladar = document.getElementById('form-trasladar');
+    const elTrasDestino = document.getElementById('trasladar-destino');
+    const elTrasCantidad = document.getElementById('trasladar-cantidad');
+    const elTrasConfirmar = document.getElementById('trasladar-confirmar');
+    let porTrasladar = null;
+
+    async function abrirTrasladar(e) {
+        porTrasladar = e;
+        errorDialogo('trasladar-error', '');
+        document.getElementById('trasladar-texto').textContent =
+            e.producto + ': ahora hay ' + e.cantidad + ' unidades en ' + nombreAlmacen + '.';
+        elTrasCantidad.value = 1;
+        elTrasCantidad.max = e.cantidad;
+        elTrasDestino.replaceChildren();
+        dlgTrasladar.showModal();
+        try {
+            const destinos = (await getAlmacenes()).filter(a => a.id !== almacenId);
+            for (const a of destinos) {
+                const op = document.createElement('option');
+                op.value = a.id;
+                op.textContent = a.nombre;
+                elTrasDestino.append(op);
+            }
+            if (destinos.length === 0) errorDialogo('trasladar-error', 'No hay otro almacén al que trasladar.');
+        } catch (err) {
+            errorDialogo('trasladar-error', 'No se pudo cargar la lista de almacenes. ' + err.message);
+        }
+    }
+
+    formTrasladar.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        if (!porTrasladar) return;
+        errorDialogo('trasladar-error', '');
+        const e = porTrasladar;
+        const destinoId = Number(elTrasDestino.value);
+        const cantidad = leerEntero(elTrasCantidad.value, 1);
+        if (!destinoId) { errorDialogo('trasladar-error', 'Elige el almacén de destino.'); return; }
+        if (cantidad === null) { errorDialogo('trasladar-error', 'Escribe cuántas unidades (un número entero mayor que 0).'); return; }
+        if (cantidad > e.cantidad) { errorDialogo('trasladar-error', 'Solo hay ' + e.cantidad + ' unidades.'); return; }
+        elTrasConfirmar.disabled = true;
+        try {
+            await ejecutar(
+                { almacenId: almacenId, productoId: e.productoId, cantidad: cantidad, tipo: 'TRASLADO', almacenDestinoId: destinoId },
+                // para deshacer, el traslado se hace al revés: del destino de vuelta a este almacén
+                { almacenId: destinoId, productoId: e.productoId, cantidad: cantidad, tipo: 'TRASLADO', almacenDestinoId: almacenId },
+                'Traslado registrado',
+                e.producto);
+            dlgTrasladar.close();
+            porTrasladar = null;
+        } catch (err) {
+            errorDialogo('trasladar-error', err.message);
+        } finally {
+            elTrasConfirmar.disabled = false;
+        }
+    });
+
+    /* ---------- Diálogo 4: varias unidades de golpe / recuento ---------- */
+    const dlgCantidad = document.getElementById('dlg-cantidad');
+    const formCantidad = document.getElementById('form-cantidad');
+    const elCantNumero = document.getElementById('cantidad-numero');
+    const elCantConfirmar = document.getElementById('cantidad-confirmar');
+    const elCantSentido = document.getElementById('cantidad-sentido');
+    let contextoCantidad = null;   // { existencia, modo: 'varias' | 'recuento' }
+
+    function abrirCantidad(e, modo) {
+        contextoCantidad = { existencia: e, modo: modo };
+        errorDialogo('cantidad-error', '');
+        const recuento = modo === 'recuento';
+        document.getElementById('cantidad-titulo').textContent = (recuento ? 'Recuento · ' : 'Varias unidades · ') + e.producto;
+        document.getElementById('cantidad-ayuda').textContent = recuento
+            ? 'Cuenta lo que hay en el almacén y escribe el total. El sistema tiene ' + e.cantidad + '.'
+            : 'Ahora hay ' + e.cantidad + ' unidades. Elige si entran o salen y cuántas.';
+        document.getElementById('cantidad-etiqueta').textContent = recuento ? 'Unidades que hay en total' : 'Unidades';
+        elCantSentido.hidden = recuento;
+        document.getElementById('sentido-entrada').checked = true;
+        elCantNumero.min = recuento ? 0 : 1;
+        elCantNumero.value = recuento ? e.cantidad : '';
+        dlgCantidad.showModal();
+        elCantNumero.focus();
+        elCantNumero.select();
+    }
+
+    formCantidad.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        if (!contextoCantidad) return;
+        errorDialogo('cantidad-error', '');
+        const e = contextoCantidad.existencia;
+        const recuento = contextoCantidad.modo === 'recuento';
+        const n = leerEntero(elCantNumero.value, recuento ? 0 : 1);
+        if (n === null) {
+            errorDialogo('cantidad-error', recuento
+                ? 'Escribe el total contado (un número entero, 0 o más).'
+                : 'Escribe cuántas unidades (un número entero mayor que 0).');
+            return;
+        }
+
+        let movimiento, inverso, aviso;
+        if (recuento) {
+            if (n === e.cantidad) { dlgCantidad.close(); avisar('Sin cambios: ya había ' + n); return; }
+            movimiento = { almacenId: almacenId, productoId: e.productoId, cantidad: n, tipo: 'AJUSTE' };
+            inverso = { almacenId: almacenId, productoId: e.productoId, cantidad: e.cantidad, tipo: 'AJUSTE' };
+            aviso = 'Recuento guardado';
+        } else {
+            const tipo = document.querySelector('input[name="sentido"]:checked').value;
+            if (tipo === 'SALIDA' && n > e.cantidad) {
+                errorDialogo('cantidad-error', 'Solo hay ' + e.cantidad + ' unidades.');
+                return;
+            }
+            movimiento = { almacenId: almacenId, productoId: e.productoId, cantidad: n, tipo: tipo };
+            inverso = { almacenId: almacenId, productoId: e.productoId, cantidad: n, tipo: tipo === 'SALIDA' ? 'ENTRADA' : 'SALIDA' };
+            aviso = tipo === 'SALIDA' ? 'Salida registrada' : 'Entrada registrada';
+        }
+
+        elCantConfirmar.disabled = true;
+        try {
+            await ejecutar(movimiento, inverso, aviso, e.producto);
+            dlgCantidad.close();
+            contextoCantidad = null;
+        } catch (err) {
+            errorDialogo('cantidad-error', err.message);
+        } finally {
+            elCantConfirmar.disabled = false;
+        }
+    });
+
+    /* ---------- Arranque ---------- */
 
     //comprueba que hay ID
     //Si lo hay carga el título y existencias a la vez con Promise.all
@@ -193,6 +599,8 @@
                 mostrarMensaje('Falta el almacén en la dirección. Entra desde la lista de almacenes o escanea el QR.', false);
                 return;
             }
+            elBtnHistorial.href = 'historial.html?id=' + encodeURIComponent(almacenId);
+            elBtnHistorial.removeAttribute('aria-disabled');
             await Promise.all([cargarTitulo(), recargarExistencias()]);
         } catch (err) {
             mostrarMensaje('No se pudo cargar el almacén. ' + err.message, true);
@@ -200,6 +608,9 @@
     }
 
     elBuscador.addEventListener('input', pintar); //conecta el buscador
+    elBtnDeshacer.addEventListener('click', deshacer);
+    // Sin almacén todavía, los botones de arriba no deben hacer nada
+    elBtnHistorial.addEventListener('click', (ev) => { if (!almacenId) ev.preventDefault(); });
     iniciar();
 </script>
 </body>
