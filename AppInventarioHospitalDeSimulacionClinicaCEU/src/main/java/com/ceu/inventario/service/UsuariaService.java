@@ -3,7 +3,7 @@ package com.ceu.inventario.service;
 import com.ceu.inventario.dto.UsuarioDTO;
 import com.ceu.inventario.modelo.Usuario;
 import com.ceu.inventario.repository.UsuarioRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +15,7 @@ import java.util.List;
 public class UsuariaService {
     private final UsuarioRepository usuarioRepository;
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public List<UsuarioDTO> listarUsuarios(){ //¿QUINE HACE CADA MOVIMIENTO?
         List<UsuarioDTO> resultado=new ArrayList<>();
         for(Usuario u: usuarioRepository.findByActivoTrueOrderByNombreAsc()){

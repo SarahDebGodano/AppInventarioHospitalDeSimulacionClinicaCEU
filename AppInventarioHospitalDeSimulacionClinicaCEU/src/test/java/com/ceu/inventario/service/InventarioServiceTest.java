@@ -84,4 +84,8 @@ public class InventarioServiceTest {
         assertEquals(origenAntes.cantidad() - 5, buscar("Almacén 4", "Gafas nasales").cantidad());
         assertEquals(destinoAntes.cantidad() + 5, buscar("Pediatría 1", "Gafas nasales").cantidad());
     }
+    @Test
+    void hayTresCategorias() {
+        assertEquals(3, inventarioService.listarCategorias().size());
+    }
 }

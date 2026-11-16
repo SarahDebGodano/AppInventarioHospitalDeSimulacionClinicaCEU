@@ -1,20 +1,9 @@
 package com.ceu.inventario.service;
 
-import com.ceu.inventario.dto.AlmacenDTO;
-import com.ceu.inventario.dto.ExistenciaDTO;
-import com.ceu.inventario.dto.MovimientoDTO;
-import com.ceu.inventario.dto.MovimientoRequest;
-import com.ceu.inventario.modelo.Almacen;
-import com.ceu.inventario.modelo.Existencia;
-import com.ceu.inventario.modelo.Movimiento;
-import com.ceu.inventario.modelo.Producto;
-import com.ceu.inventario.modelo.Usuario;
+import com.ceu.inventario.dto.*;
+import com.ceu.inventario.modelo.*;
 import com.ceu.inventario.modelo.enums.TipoMovimiento;
-import com.ceu.inventario.repository.AlmacenRepository;
-import com.ceu.inventario.repository.ExistenciaRepository;
-import com.ceu.inventario.repository.MovimientoRepository;
-import com.ceu.inventario.repository.ProductRepository;
-import com.ceu.inventario.repository.UsuarioRepository;
+import com.ceu.inventario.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +22,7 @@ public class InventarioService {
     private final UsuarioRepository usuarioRepository;
     private final ExistenciaRepository existenciaRepository;
     private final MovimientoRepository movimientoRepository;
+    private final CategoriaRepository categoriaRepository;
 
     //Orden de los almacenes por nombre
     //Pantalla incial con la lista de almacenes
@@ -152,6 +142,15 @@ public class InventarioService {
         movimientoRepository.save(movimiento);
         // No hace falta llamar a save() en las existencias: al ser entidades cargadas dentro de
         // la transacción, JPA guarda sus cambios automáticamente al terminar el método.
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoriaDTO> listarCategorias() {
+        List<CategoriaDTO> resultado = new ArrayList<>();
+        for (Categoria c : categoriaRepository.findAllByOrderByNombreAsc()) {
+            resultado.add(new CategoriaDTO(c.getId(), c.getNombre()));
+        }
+        return resultado;
     }
 
 
