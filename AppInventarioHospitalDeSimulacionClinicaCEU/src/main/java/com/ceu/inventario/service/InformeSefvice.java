@@ -1,5 +1,6 @@
 package com.ceu.inventario.service;
 
+import com.ceu.inventario.dto.BajoMinimoDTO;
 import com.ceu.inventario.dto.ExistenciaDTO;
 import com.ceu.inventario.modelo.Almacen;
 import com.ceu.inventario.modelo.Existencia;
@@ -101,8 +102,19 @@ public class InformeSefvice {
     }
 
     /** Productos por debajo del stock mínimo en cualquier almacén. (Pendiente: falta el almacén en el DTO) */
-    public List<ExistenciaDTO> listarBajoMinimo() {
-        throw new UnsupportedOperationException("Pendiente");
+    @Transactional(readOnly = true)
+    public List<BajoMinimoDTO> listarBajoMinimo() {
+        List<BajoMinimoDTO> resultado = new ArrayList<>();
+        for (Existencia e : existenciaRepository.buscarBajoMinimo()) {
+            resultado.add(new BajoMinimoDTO(
+                    e.getAlmacen().getId(),
+                    e.getAlmacen().getNombre(),
+                    e.getProducto().getId(),
+                    e.getProducto().getNombre(),
+                    e.getCantidad(),
+                    e.getStockMinimo()));
+        }
+        return resultado;
     }
     private void escribirPortada(Document documento, List<Almacen> almacenes,
                                  List<List<Existencia>> existenciasPorAlmacen) {

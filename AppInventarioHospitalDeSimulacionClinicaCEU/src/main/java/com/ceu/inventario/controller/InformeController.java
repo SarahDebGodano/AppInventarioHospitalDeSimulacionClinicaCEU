@@ -1,5 +1,6 @@
 package com.ceu.inventario.controller;
 
+import com.ceu.inventario.dto.BajoMinimoDTO;
 import com.ceu.inventario.dto.ExistenciaDTO;
 import com.ceu.inventario.service.InformeSefvice;
 import org.springframework.http.HttpHeaders;
@@ -37,7 +38,7 @@ public class InformeController {
 
     /** GET /api/informes/bajo-minimo: productos por debajo del mínimo en cualquier almacén. */
     @GetMapping("/bajo-minimo")
-    public List<ExistenciaDTO> bajoMinimo() {
+    public List<BajoMinimoDTO> bajoMinimo() {
         return informeService.listarBajoMinimo();
     }
 }

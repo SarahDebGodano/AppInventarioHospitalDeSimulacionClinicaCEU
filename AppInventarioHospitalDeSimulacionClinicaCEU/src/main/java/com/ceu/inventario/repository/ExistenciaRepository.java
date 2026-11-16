@@ -39,12 +39,12 @@ public interface ExistenciaRepository extends JpaRepository<Existencia,Long> {
 
     /** Todo lo que está por debajo de su stock mínimo, en cualquier almacén. */
     @Query("""
-           SELECT e FROM Existencia e
-           JOIN FETCH e.producto p
-           JOIN FETCH e.almacen
-           WHERE e.cantidad < e.stockMinimo
-           ORDER BY p.nombre
-           """)
+       SELECT e FROM Existencia e
+       JOIN FETCH e.producto p
+       JOIN FETCH e.almacen a
+       WHERE e.cantidad < e.stockMinimo
+       ORDER BY a.nombre, p.nombre
+       """)
     List<Existencia> buscarBajoMinimo();
 
     boolean existsByProductoId(Long productoId);

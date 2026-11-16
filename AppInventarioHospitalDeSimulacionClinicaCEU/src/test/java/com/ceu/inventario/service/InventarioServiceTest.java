@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class InventarioServiceTest {
     @Autowired
     InventarioService inventarioService;
+    @Autowired
+    InformeSefvice informeSefvice;
 
     /** Busca el id de un almacén por su nombre (para no depender de los números). */
     private Long idDe(String nombreAlmacen) {
@@ -140,5 +142,14 @@ public class InventarioServiceTest {
         MovimientoDTO ultimo = inventarioService.historial(idDe("Almacén 4")).get(0);
         assertEquals(TipoMovimiento.TRASLADO, ultimo.tipo());
         assertEquals("Pediatría 1", ultimo.almacenDestino());
+    }
+    @Test
+    void unProductoPorDebajoDelMinimoApareceEnBajoMinimo() {
+        inventarioService.crearProducto(
+                new NuevoProductoRequest(idDe("Almacén 7"), "Producto escaso XYZ", null, 1, 5, 1L));
+
+        boolean aparece = informeSefvice.listarBajoMinimo().stream()
+                .anyMatch(b -> b.producto().equals("Producto escaso XYZ") && b.almacen().equals("Almacén 7"));
+        assertTrue(aparece);
     }
 }
