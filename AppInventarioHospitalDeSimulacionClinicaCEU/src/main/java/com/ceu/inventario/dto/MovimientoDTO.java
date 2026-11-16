@@ -11,6 +11,7 @@ public record MovimientoDTO(
         String producto,
         int cantidad,
         String usuario,
-        LocalDateTime fecha
+        LocalDateTime fecha,
+        String almacenDestino //solo dejara de ser null para traslados
 ) {
 }

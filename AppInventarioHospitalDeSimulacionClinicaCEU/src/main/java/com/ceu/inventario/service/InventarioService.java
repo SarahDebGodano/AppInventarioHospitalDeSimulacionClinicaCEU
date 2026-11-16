@@ -72,13 +72,18 @@ public class InventarioService {
 
         List<MovimientoDTO> resultado = new ArrayList<>();
         for (Movimiento m : movimientoRepository.findTop100ByAlmacenIdOrderByFechaDesc(almacenId)) {
+            String destino=null;
+            if(m.getAlmacenDestino()!=null){
+                destino=m.getAlmacenDestino().getNombre();
+            }
             resultado.add(new MovimientoDTO(
                     m.getId(),
                     m.getTipo(),
                     m.getProducto().getNombre(),
                     m.getCantidad(),
                     m.getUsuario().getNombre(),
-                    m.getFecha()));
+                    m.getFecha(),
+                    destino));
         }
         return resultado;
     }

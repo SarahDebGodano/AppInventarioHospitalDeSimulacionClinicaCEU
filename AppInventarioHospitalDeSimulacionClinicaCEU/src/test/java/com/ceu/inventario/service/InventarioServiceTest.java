@@ -1,8 +1,5 @@
 package com.ceu.inventario.service;
-import com.ceu.inventario.dto.AlmacenDTO;
-import com.ceu.inventario.dto.ExistenciaDTO;
-import com.ceu.inventario.dto.MovimientoRequest;
-import com.ceu.inventario.dto.NuevoProductoRequest;
+import com.ceu.inventario.dto.*;
 import com.ceu.inventario.modelo.enums.TipoMovimiento;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -132,5 +129,16 @@ public class InventarioServiceTest {
         assertNotNull(buscar("Pediatría 1", "Gafas nasales"));
         // ...y queda constancia en el historial
         assertEquals("Gafas nasales", inventarioService.historial(almacen4).get(0).producto());
+    }
+    @Test
+    void elTrasladoApareceEnElHistorialConSuDestino() {
+        ExistenciaDTO gafas = buscar("Almacén 4", "Gafas nasales");
+
+        inventarioService.registrarMovimiento(new MovimientoRequest(
+                TipoMovimiento.TRASLADO, idDe("Almacén 4"), gafas.productoId(), 2, 1L, idDe("Pediatría 1")));
+
+        MovimientoDTO ultimo = inventarioService.historial(idDe("Almacén 4")).get(0);
+        assertEquals(TipoMovimiento.TRASLADO, ultimo.tipo());
+        assertEquals("Pediatría 1", ultimo.almacenDestino());
     }
 }
