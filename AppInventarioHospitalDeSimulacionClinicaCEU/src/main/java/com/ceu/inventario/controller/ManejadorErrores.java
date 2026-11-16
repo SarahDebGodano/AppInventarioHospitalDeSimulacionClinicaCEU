@@ -2,6 +2,7 @@ package com.ceu.inventario.controller;
 
 import com.ceu.inventario.service.NoEncontradoException;
 import com.ceu.inventario.service.StockInsuficienteException;
+import com.ceu.inventario.service.YaExisteException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -30,20 +31,26 @@ public class ManejadorErrores {
         return error(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
+    /** El producto ya está en ese almacén: 409 (conflicto). El texto del servicio explica qué hacer. */
+    @ExceptionHandler(YaExisteException.class)
+    public ResponseEntity<Map<String, String>> yaExiste(YaExisteException e) {
+        return error(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     /** Datos incorrectos detectados por el service (cantidad 0, falta destino en un traslado...). */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> argumentoIncorrecto(IllegalArgumentException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
-    /** Falla alguna validación de MovimientoRequest (@NotNull, @Min, @Size...). */
+    /** Falla alguna validación de MovimientoRequest o NuevoProductoRequest (@NotNull, @Min, @Size...). */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> datosNoValidos(MethodArgumentNotValidException e) {
         String detalle = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(f -> f.getField() + " " + f.getDefaultMessage())
                 .orElse("datos no válidos");
-        return error(HttpStatus.BAD_REQUEST, "Movimiento no válido: " + detalle);
+        return error(HttpStatus.BAD_REQUEST, "Datos no válidos: " + detalle);
     }
 
     /** El JSON llegó mal formado o con un valor de tipo incorrecto. */
@@ -52,7 +59,7 @@ public class ManejadorErrores {
         return error(HttpStatus.BAD_REQUEST, "La petición no tiene el formato esperado.");
     }
 
-    /** TEMPORAL: aún quedan métodos "Pendiente" (UsuariaService.listarUsuarios, InformeSefvice.listarBajoMinimo). */
+    /** TEMPORAL */
     @ExceptionHandler(UnsupportedOperationException.class)
     public ResponseEntity<Map<String, String>> pendiente(UnsupportedOperationException e) {
         return error(HttpStatus.NOT_IMPLEMENTED, "Todavía no está implementado en el servidor.");

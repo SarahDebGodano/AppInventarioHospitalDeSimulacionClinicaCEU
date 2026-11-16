@@ -172,7 +172,7 @@ async function postMovimiento(m) {
 // p = { nombre, categoriaId (o null), cantidad, stockMinimo }
 // Devuelve la ExistenciaDTO creada. Si ya está en ese almacén el servidor responde 409
 // (error.estado === 409) con el texto en "mensaje".
-//   -> POST /api/almacenes/{almacenId}/productos
+//   -> POST /api/productos   (NuevoProductoRequest lleva el almacenId dentro del cuerpo)
 async function crearProducto(almacenId, p) {
     if (USAR_MOCK) {
         const lista = MOCK.existencias[almacenId] || (MOCK.existencias[almacenId] = []);
@@ -195,13 +195,14 @@ async function crearProducto(almacenId, p) {
         return fila;
     }
     const cuerpo = {
+        almacenId: almacenId,
         nombre: p.nombre,
         categoriaId: p.categoriaId ?? null,
         cantidad: p.cantidad,
         stockMinimo: p.stockMinimo,
         usuarioId: p.usuarioId ?? USUARIO_POR_DEFECTO,
     };
-    const respuesta = await pedir('/almacenes/' + almacenId + '/productos', {
+    const respuesta = await pedir('/productos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cuerpo),
@@ -210,7 +211,8 @@ async function crearProducto(almacenId, p) {
 }
 
 // Quita un producto entero de un almacén (se pierden sus unidades en ese almacén).
-//   -> DELETE /api/almacenes/{almacenId}/productos/{productoId}   (204 sin cuerpo)
+//   -> DELETE /api/almacenes/{almacenId}/productos/{productoId}?usuarioId=1   (204 sin cuerpo)
+// El usuario va en la dirección porque el servidor deja un AJUSTE a 0 en el historial.
 async function eliminarExistencia(almacenId, productoId) {
     if (USAR_MOCK) {
         const lista = MOCK.existencias[almacenId] || [];
@@ -219,7 +221,8 @@ async function eliminarExistencia(almacenId, productoId) {
         lista.splice(i, 1);
         return;
     }
-    await pedir('/almacenes/' + almacenId + '/productos/' + productoId, { method: 'DELETE' });
+    await pedir('/almacenes/' + almacenId + '/productos/' + productoId +
+        '?usuarioId=' + encodeURIComponent(USUARIO_POR_DEFECTO), { method: 'DELETE' });
 }
 
 function descargarInforme() {
