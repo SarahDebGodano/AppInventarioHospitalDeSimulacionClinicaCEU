@@ -1,4 +1,4 @@
-// Todas las llamadas al servidor están aquí. El resto de la interfaz solo usa estas funciones.
+// Todas las llamadas al servidor. El resto de la interfaz solo usa estas funciones.
 // USAR_MOCK = true  -> datos falsos en el navegador (sin servidor).
 // USAR_MOCK = false -> habla con la API de Spring (/api/...).
 const USAR_MOCK = false;
