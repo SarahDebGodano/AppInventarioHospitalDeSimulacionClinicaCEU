@@ -2,6 +2,7 @@ package com.ceu.inventario.service;
 import com.ceu.inventario.dto.AlmacenDTO;
 import com.ceu.inventario.dto.ExistenciaDTO;
 import com.ceu.inventario.dto.MovimientoRequest;
+import com.ceu.inventario.dto.NuevoProductoRequest;
 import com.ceu.inventario.modelo.enums.TipoMovimiento;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,5 +88,34 @@ public class InventarioServiceTest {
     @Test
     void hayTresCategorias() {
         assertEquals(3, inventarioService.listarCategorias().size());
+    }
+    @Test
+    void anadirUnArticuloNuevoLoMuestraEnElAlmacen() {
+        Long almacen7 = idDe("Almacén 7");
+        int antes = inventarioService.listarExistencias(almacen7, null).size();
+
+        ExistenciaDTO creada = inventarioService.crearProducto(
+                new NuevoProductoRequest(almacen7, "  Producto de prueba XYZ ", null, 5, 2, 1L));
+
+        assertEquals("Producto de prueba XYZ", creada.producto());   // sin espacios sobrantes
+        assertEquals(5, creada.cantidad());
+        assertEquals(antes + 1, inventarioService.listarExistencias(almacen7, null).size());
+    }
+
+    @Test
+    void anadirUnProductoQueYaExisteEnOtroAlmacenLoReutiliza() {
+        ExistenciaDTO enAlmacen4 = buscar("Almacén 4", "Gafas nasales");
+
+        ExistenciaDTO creada = inventarioService.crearProducto(
+                new NuevoProductoRequest(idDe("Almacén 7"), "gafas NASALES", null, 3, 0, 1L));
+
+        assertEquals(enAlmacen4.productoId(), creada.productoId());   // mismo producto, no uno nuevo
+    }
+
+    @Test
+    void noSePuedeAnadirUnArticuloQueYaEstaEnEseAlmacen() {
+        assertThrows(YaExisteException.class, () ->
+                inventarioService.crearProducto(
+                        new NuevoProductoRequest(idDe("Almacén 4"), "Gafas nasales", null, 1, 0, 1L)));
     }
 }

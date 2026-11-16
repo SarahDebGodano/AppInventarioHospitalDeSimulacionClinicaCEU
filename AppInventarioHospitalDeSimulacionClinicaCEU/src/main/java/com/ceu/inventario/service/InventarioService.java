@@ -152,6 +152,71 @@ public class InventarioService {
         }
         return resultado;
     }
+    //AÑADIR ARTICULO A UN ALMACEN
+//1. Si el producto ya existe (mismo nombre) se reutiliza; si no, se crea.
+//2. Si ya está en ese almacén -> error (para sumar unidades está el botón +).
+//3. Se crea la existencia con su cantidad y su stock mínimo.
+//4. Si entra con unidades, se apunta una ENTRADA en el historial.
+    @Transactional
+    public ExistenciaDTO crearProducto(NuevoProductoRequest req) {
+        Almacen almacen = buscarAlmacen(req.almacenId());
+        Usuario usuario = buscarUsuario(req.usuarioId());
+
+        String nombre = req.nombre().trim();
+        if (nombre.isEmpty()) {
+            throw new IllegalArgumentException("El nombre no puede estar vacío");
+        }
+
+        Categoria categoria = null;
+        if (req.categoriaId() != null) {
+            categoria = categoriaRepository.findById(req.categoriaId())
+                    .orElseThrow(() -> new NoEncontradoException("No existe la categoría " + req.categoriaId()));
+        }
+
+        // 1. Reutilizar el producto si ya existe con ese nombre
+        Producto producto;
+        List<Producto> mismos = productoRepository.buscarPorNombre(nombre);
+        if (mismos.isEmpty()) {
+            producto = new Producto();
+            producto.setNombre(nombre);
+            producto.setCategoria(categoria);
+            producto = productoRepository.save(producto);
+        } else {
+            producto = mismos.get(0);
+            producto.setActivo(true);   // por si se había eliminado de todos los almacenes
+            if (producto.getCategoria() == null && categoria != null) {
+                producto.setCategoria(categoria);
+            }
+        }
+
+        // 2. No duplicar dentro del mismo almacén
+        if (existenciaRepository.findByAlmacenIdAndProductoId(almacen.getId(), producto.getId()).isPresent()) {
+            throw new YaExisteException("«" + producto.getNombre() + "» ya está en " + almacen.getNombre()
+                    + ". Búscalo y usa + para añadir unidades.");
+        }
+
+        // 3. Crear la existencia
+        Existencia existencia = new Existencia();
+        existencia.setAlmacen(almacen);
+        existencia.setProducto(producto);
+        existencia.setCantidad(req.cantidad());
+        existencia.setStockMinimo(req.stockMinimo());
+        existencia = existenciaRepository.save(existencia);
+
+        // 4. Dejar constancia en el historial
+        if (req.cantidad() > 0) {
+            Movimiento movimiento = new Movimiento();
+            movimiento.setTipo(TipoMovimiento.ENTRADA);
+            movimiento.setAlmacen(almacen);
+            movimiento.setProducto(producto);
+            movimiento.setUsuario(usuario);
+            movimiento.setCantidad(req.cantidad());
+            movimientoRepository.save(movimiento);
+        }
+
+        return aDTO(existencia);
+    }
+
 
 
     //utilis:
