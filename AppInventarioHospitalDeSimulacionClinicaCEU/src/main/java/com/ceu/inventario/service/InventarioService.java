@@ -41,7 +41,7 @@ public class InventarioService {
     public List<AlmacenDTO> listarAlmacenes() {
         List<AlmacenDTO> resultado = new ArrayList<>();
         for (Almacen a : almacenRepository.findAllByOrderByNombreAsc()) {
-            resultado.add(new AlmacenDTO(a.getId(), a.getNombre(), a.getDescripcion()));
+            resultado.add(new AlmacenDTO(a.getId(), a.getNombre(), a.getDescripcion(), a.getCodigoQr()));
         }
         return resultado;
     }
