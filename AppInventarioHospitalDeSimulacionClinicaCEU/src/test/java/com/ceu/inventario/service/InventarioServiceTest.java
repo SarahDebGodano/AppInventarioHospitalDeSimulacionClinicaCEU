@@ -118,4 +118,19 @@ public class InventarioServiceTest {
                 inventarioService.crearProducto(
                         new NuevoProductoRequest(idDe("Almacén 4"), "Gafas nasales", null, 1, 0, 1L)));
     }
+    @Test
+    void eliminarQuitaElArticuloSoloDeEseAlmacen() {
+        Long almacen4 = idDe("Almacén 4");
+        ExistenciaDTO gafas = buscar("Almacén 4", "Gafas nasales");
+        int antes = inventarioService.listarExistencias(almacen4, null).size();
+
+        inventarioService.eliminarDeAlmacen(almacen4, gafas.productoId(), 1L);
+
+        // Ya no está en el Almacén 4...
+        assertEquals(antes - 1, inventarioService.listarExistencias(almacen4, null).size());
+        // ...pero sigue en Pediatría 1
+        assertNotNull(buscar("Pediatría 1", "Gafas nasales"));
+        // ...y queda constancia en el historial
+        assertEquals("Gafas nasales", inventarioService.historial(almacen4).get(0).producto());
+    }
 }

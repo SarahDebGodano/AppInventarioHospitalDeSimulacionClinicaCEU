@@ -46,4 +46,6 @@ public interface ExistenciaRepository extends JpaRepository<Existencia,Long> {
            ORDER BY p.nombre
            """)
     List<Existencia> buscarBajoMinimo();
+
+    boolean existsByProductoId(Long productoId);
 }

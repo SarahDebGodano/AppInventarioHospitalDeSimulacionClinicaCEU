@@ -286,4 +286,38 @@ public class InventarioService {
                 e.getStockMinimo(),
                 e.estaBajoMinimo());
     }
+    //ELIMINAR ARTICULO DE UN ALMACEN
+//Quita el producto de ESE almacén (no de los demás).
+//En el historial queda un AJUSTE a 0 para saber quién lo quitó y cuándo.
+//El producto no se borra (el historial lo sigue usando);
+//si ya no queda en ningún almacén, se marca como inactivo.
+    @Transactional
+    public void eliminarDeAlmacen(Long almacenId, Long productoId, Long usuarioId) {
+        Almacen almacen = buscarAlmacen(almacenId);
+        Producto producto = buscarProducto(productoId);
+        Usuario usuario = buscarUsuario(usuarioId);
+
+        Existencia existencia = existenciaRepository
+                .findByAlmacenIdAndProductoId(almacenId, productoId)
+                .orElseThrow(() -> new NoEncontradoException(
+                        "«" + producto.getNombre() + "» no está en " + almacen.getNombre()));
+
+        // 1. Dejar constancia en el historial
+        Movimiento movimiento = new Movimiento();
+        movimiento.setTipo(TipoMovimiento.AJUSTE); // se hace un ajuste a 0 por que en la tabla de movimientos no estaba definida la "Resta"
+        movimiento.setAlmacen(almacen);
+        movimiento.setProducto(producto);
+        movimiento.setUsuario(usuario);
+        movimiento.setCantidad(0);
+        movimientoRepository.save(movimiento);
+
+        // 2. Quitarlo de este almacén
+        existenciaRepository.delete(existencia);
+
+        // 3. Si ya no está en ningún almacén, marcarlo como inactivo
+        if (!existenciaRepository.existsByProductoId(productoId)) {
+            producto.setActivo(false);
+        }
+    }
+
 }
