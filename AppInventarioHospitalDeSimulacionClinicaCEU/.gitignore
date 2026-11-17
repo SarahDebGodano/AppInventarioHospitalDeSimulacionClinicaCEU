@@ -35,5 +35,6 @@ build/
 ### Configuración local (contraseñas) ###
 application-local.properties
 .env
+logs/
 
 
