@@ -205,7 +205,7 @@ public class InventarioService {
         existencia.setAlmacen(almacen);
         existencia.setProducto(producto);
         existencia.setCantidad(req.cantidad());
-        existencia.setStockMinimo(req.stockMinimo());
+        existencia.setStockMinimo(minimoSegunCategoria(producto, req.stockMinimo()));
         existencia = existenciaRepository.save(existencia);
 
         // 4. Dejar constancia en el historial
@@ -267,6 +267,7 @@ public class InventarioService {
         nueva.setAlmacen(almacen);
         nueva.setProducto(producto);
         nueva.setCantidad(0);
+        nueva.setStockMinimo(esFungible(producto) ? 0 : null);
         return existenciaRepository.save(nueva);
     }
     private ExistenciaDTO aDTO(Existencia e) {
@@ -325,4 +326,15 @@ public class InventarioService {
         }
     }
 
+    //Para asegurar que solo se "mida" el stock minimo en los fungibles
+    private boolean esFungible(Producto p) {
+        return p.getCategoria() != null && "Fungible".equalsIgnoreCase(p.getCategoria().getNombre());
+    }
+
+    private Integer minimoSegunCategoria(Producto p, Integer pedido) {
+        if (!esFungible(p)) {
+            return null;
+        }
+        return pedido != null ? pedido : 0;
+    }
 }

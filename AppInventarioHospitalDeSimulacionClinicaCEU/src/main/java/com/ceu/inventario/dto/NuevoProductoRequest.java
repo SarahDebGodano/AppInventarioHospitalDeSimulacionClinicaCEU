@@ -10,7 +10,7 @@ public record NuevoProductoRequest(
         @NotBlank @Size(max = 150) String nombre,
         Long categoriaId,          // opcional: null = sin categoría
         @Min(0) int cantidad,      // unidades iniciales en este almacén
-        @Min(0) int stockMinimo,
+        @Min(0) Integer stockMinimo, //solo cuenta si es fungible
         @NotNull Long usuarioId
 
 ) {}

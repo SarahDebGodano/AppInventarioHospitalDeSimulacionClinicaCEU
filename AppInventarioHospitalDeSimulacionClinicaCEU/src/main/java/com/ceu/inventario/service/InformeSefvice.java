@@ -221,7 +221,8 @@ public class InformeSefvice {
             celda(tabla, e.getProducto().getNombre(), NORMAL, Element.ALIGN_LEFT, fondo);
             celda(tabla, categoria, NORMAL, Element.ALIGN_LEFT, fondo);
             celda(tabla, String.valueOf(e.getCantidad()), NORMAL, Element.ALIGN_RIGHT, fondo);
-            celda(tabla, String.valueOf(e.getStockMinimo()), NORMAL, Element.ALIGN_RIGHT, fondo);
+            String minimo= e.getStockMinimo()==null?"-":String.valueOf(e.getStockMinimo()); //No aparecera "null" cuando el valor sea null en el pdf
+            celda(tabla, minimo, NORMAL, Element.ALIGN_RIGHT, fondo);
         }
 
         documento.add(tabla);
