@@ -6,7 +6,7 @@ public record ExistenciaDTO (
     String categoria,
     String ubicacion,
     int cantidad,
-    int stockMinimo,
+    Integer stockMinimo, //integer permite null
     boolean bajoMinimo
     //true: cantidad<stockMinimo para pintar rojo en interfaz
 

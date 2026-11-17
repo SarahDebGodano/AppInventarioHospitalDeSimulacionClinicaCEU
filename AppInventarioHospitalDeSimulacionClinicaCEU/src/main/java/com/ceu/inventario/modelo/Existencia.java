@@ -30,8 +30,8 @@ public class Existencia {
     @Column(name = "cantidad", nullable = false)
     private int cantidad = 0;
 
-    @Column(name = "stock_minimo", nullable = false)
-    private int stockMinimo = 0;
+    @Column(name = "stock_minimo")
+    private Integer stockMinimo; //null si no es fungible
 
     @Column(name = "actualizado_en", nullable = false)
     private LocalDateTime actualizadoEn;
@@ -58,6 +58,6 @@ public class Existencia {
     }
 
     public boolean estaBajoMinimo() {
-        return cantidad < stockMinimo;
+        return stockMinimo!=null && cantidad<stockMinimo;
     }
 }

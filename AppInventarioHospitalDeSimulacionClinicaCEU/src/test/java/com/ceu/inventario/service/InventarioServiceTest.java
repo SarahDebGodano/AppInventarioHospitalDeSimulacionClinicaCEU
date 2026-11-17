@@ -36,6 +36,12 @@ public class InventarioServiceTest {
                 .filter(e -> e.producto().equals(producto))
                 .findFirst().orElseThrow();
     }
+    private Long idCategoria(String nombre) {
+        return inventarioService.listarCategorias().stream()
+                .filter(c -> c.nombre().equals(nombre))
+                .findFirst().orElseThrow()
+                .id();
+    }
 
     @Test
     void hayDoceAlmacenes() {
@@ -145,11 +151,35 @@ public class InventarioServiceTest {
     }
     @Test
     void unProductoPorDebajoDelMinimoApareceEnBajoMinimo() {
-        inventarioService.crearProducto(
-                new NuevoProductoRequest(idDe("Almacén 7"), "Producto escaso XYZ", null, 1, 5, 1L));
+        inventarioService.crearProducto(new NuevoProductoRequest(
+                idDe("Almacén 7"), "Producto escaso XYZ", idCategoria("Fungible"), 1, 5, 1L));
 
         boolean aparece = informeSefvice.listarBajoMinimo().stream()
                 .anyMatch(b -> b.producto().equals("Producto escaso XYZ") && b.almacen().equals("Almacén 7"));
         assertTrue(aparece);
+    }
+    @Test
+    void unProductoQueNoEsFungibleSeGuardaSinMinimo() {
+        ExistenciaDTO creada = inventarioService.crearProducto(new NuevoProductoRequest(
+                idDe("Almacén 7"), "Simulador de prueba XYZ", idCategoria("Simuladores"), 1, 5, 1L));
+
+        assertNull(creada.stockMinimo());      // el 5 se ignora
+        assertFalse(creada.bajoMinimo());
+    }
+
+    @Test
+    void unFungibleSinMinimoSeGuardaConCero() {
+        ExistenciaDTO creada = inventarioService.crearProducto(new NuevoProductoRequest(
+                idDe("Almacén 7"), "Fungible de prueba XYZ", idCategoria("Fungible"), 3, null, 1L));
+
+        assertEquals(0, creada.stockMinimo());
+    }
+
+    @Test
+    void laMigracionCargaLosMinimos() {
+        // Fungible: tiene el mínimo de la V3 (159 gafas -> mínimo 25)
+        assertEquals(25, buscar("Almacén 4", "Gafas nasales").stockMinimo());
+        // Simulador: sin mínimo
+        assertNull(buscar("Almacén 6", "Baby QCPR").stockMinimo());
     }
 }
