@@ -5,16 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Almacenes · Hospital de simulación</title>
     <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
-    <link rel="stylesheet" href="css/estilos.css?v=2">
+    <link rel="stylesheet" href="css/estilos.css?v=5">
 </head>
 <body>
 <main class="container py-4" style="max-width: 42rem;">
     <header class="text-center mb-4">
+        <!-- Usuario actual: pulsarlo lleva a cambiar de usuario (el enlace y el nombre los pone el script) -->
+        <div class="d-flex justify-content-end mb-2">
+            <a id="cambiar-usuario" href="usuarios.html" class="burbuja chip-usuario" title="Cambiar de usuario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                <span class="visually-hidden">Usuario:</span>
+                <strong id="usuario-nombre" class="chip-usuario-nombre"></strong>
+                <svg class="chip-usuario-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                <span class="visually-hidden">(pulsa para cambiar de usuario)</span>
+            </a>
+        </div>
         <!-- Si falta el fichero img/logo-ceu.png, la pastilla se oculta sola -->
         <div class="logo-ceu mb-3"><img src="img/logo-ceu.png" alt="CEU" onerror="this.parentElement.hidden = true"></div>
         <h1 class="display-5 fw-bold">Almacenes</h1>
-        <p class="lead mb-2">Hospital de simulación clínica</p>
-        <p class="small mb-0">Usuario: <strong id="usuario-nombre"></strong> · <a id="cambiar-usuario" href="usuarios.html">Cambiar</a></p>
+        <p class="lead mb-0">Hospital de simulación clínica</p>
     </header>
 
     <div id="mensaje" class="mensaje mensaje-morado" hidden></div>

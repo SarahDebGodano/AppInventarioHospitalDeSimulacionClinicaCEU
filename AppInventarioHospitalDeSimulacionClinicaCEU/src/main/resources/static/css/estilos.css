@@ -166,3 +166,18 @@ dialog.dlg .form-control::placeholder { color: rgba(255, 255, 255, 0.6); }
 .fila-usuario { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
 .fila-usuario .elegir { flex: 1; justify-content: center; min-height: 54px; font-size: 1.1rem; }
 .burbuja[hidden] { display: none; }
+
+
+/* ---------- Usuario actual (arriba a la derecha) ---------- */
+.chip-usuario {
+    max-width: 100%;
+    min-height: 42px;
+    padding: 0.25rem 0.8rem 0.25rem 0.3rem;
+    font-size: 0.95rem;
+}
+.chip-usuario-nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-usuario .chip-usuario-flecha {
+    width: 0.8rem; height: 0.8rem;
+    padding: 0; background: none; box-shadow: none; border-radius: 0;
+    opacity: 0.9;
+}
