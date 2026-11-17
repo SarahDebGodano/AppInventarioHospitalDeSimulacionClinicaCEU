@@ -8,4 +8,6 @@ import java.util.List;
 public interface UsuarioRepository extends JpaRepository<Usuario,Long> {
     List<Usuario> findByActivoTrueOrderByNombreAsc();
 
+    List<Usuario> findAllByNombreIgnoreCase(String nombre);
+
 }

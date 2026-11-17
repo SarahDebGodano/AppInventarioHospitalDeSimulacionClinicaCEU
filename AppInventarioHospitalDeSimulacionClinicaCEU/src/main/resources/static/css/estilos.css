@@ -161,3 +161,8 @@ dialog.dlg .form-control::placeholder { color: rgba(255, 255, 255, 0.6); }
 .mov-cantidad { font-size: 1.4rem; font-weight: 700; min-width: 3.2rem; text-align: right; }
 .mov-info { flex: 1; min-width: 0; }
 .mov-info .fw-bold { overflow-wrap: anywhere; }
+
+/* ---------- Pantalla de usuarios ---------- */
+.fila-usuario { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+.fila-usuario .elegir { flex: 1; justify-content: center; min-height: 54px; font-size: 1.1rem; }
+.burbuja[hidden] { display: none; }

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Usuarios · Inventario</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
+    <link rel="stylesheet" href="css/estilos.css?v=4">
+</head>
+<body>
+<main class="container py-3" style="max-width: 42rem;">
+    <header class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- Solo aparece si ya hay un usuario elegido (si no, no hay a dónde volver) -->
+            <a id="volver" href="index.html" class="burbuja" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg> Volver</a>
+            <span class="logo-ceu logo-ceu-peq ms-auto"><img src="img/logo-ceu.png" alt="CEU San Pablo" onerror="this.parentElement.remove()"></span>
+        </div>
+        <h1 class="h2 fw-bold mt-1">¿Quién eres?</h1>
+        <p class="mb-0">Elige tu nombre: los movimientos que hagas se apuntarán a él.</p>
+    </header>
+
+    <!-- Avisos y errores (oculto por defecto) -->
+    <div id="mensaje" class="mensaje mensaje-morado" hidden></div>
+
+    <div class="barra-acciones">
+        <button id="btn-anadir" class="burbuja burbuja-txt" type="button">+ Añadir usuario</button>
+    </div>
+
+    <div id="usuarios"></div>
+</main>
+
+<!-- Mensaje flotante de arriba (oculto por defecto) -->
+<div id="aviso" class="aviso-flotante" role="status" hidden></div>
+
+<!-- ============ Diálogo: añadir usuario ============ -->
+<dialog id="dlg-anadir" class="dlg" aria-labelledby="anadir-titulo">
+    <form id="form-anadir" novalidate>
+        <h2 id="anadir-titulo">Añadir usuario</h2>
+        <p class="dlg-error" id="anadir-error" role="alert" hidden></p>
+
+        <label for="anadir-nombre" class="form-label">Nombre</label>
+        <input id="anadir-nombre" type="text" class="form-control mb-3" maxlength="100" autocomplete="off" required>
+
+        <div class="dlg-botones">
+            <button type="button" class="burbuja burbuja-txt burbuja-peq" data-cerrar>Cancelar</button>
+            <button id="anadir-guardar" type="submit" class="burbuja burbuja-txt">Guardar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ Diálogo: eliminar usuario ============ -->
+<dialog id="dlg-eliminar" class="dlg" aria-labelledby="eliminar-titulo">
+    <form id="form-eliminar" novalidate>
+        <h2 id="eliminar-titulo">Eliminar usuario</h2>
+        <p class="dlg-error" id="eliminar-error" role="alert" hidden></p>
+        <p id="eliminar-texto"></p>
+        <div class="dlg-botones">
+            <button type="button" class="burbuja burbuja-txt burbuja-peq" data-cerrar>Cancelar</button>
+            <button id="eliminar-confirmar" type="submit" class="burbuja burbuja-txt">Eliminar</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="js/api.js"></script>
+<script>
+    const elMensaje = document.getElementById('mensaje');
+    const elLista = document.getElementById('usuarios');
+    const elAviso = document.getElementById('aviso');
+    let temporizadorAviso;
+    let usuarios = [];
+
+    // A dónde volver después de elegir nombre. Solo se aceptan páginas de esta misma aplicación
+    // (nombre.html o nombre.html?algo) para que nadie pueda mandar al usuario a otra web.
+    function destino() {
+        const v = new URLSearchParams(location.search).get('volver') || '';
+        const valido = /^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_=&.%-]*)?$/.test(v) && !v.startsWith('usuarios.html');
+        return valido ? v : 'index.html';
+    }
+
+    function mostrarError(texto) {
+        elMensaje.textContent = texto;
+        elMensaje.hidden = !texto;
+    }
+
+    function avisar(texto) {
+        elAviso.textContent = texto;
+        elAviso.hidden = false;
+        clearTimeout(temporizadorAviso);
+        temporizadorAviso = setTimeout(() => { elAviso.hidden = true; }, 2000);
+    }
+
+    //crea elemento HTML en una línea (así un nombre con símbolos raros no se interpreta como código)
+    function crear(etiqueta, clases, texto) {
+        const el = document.createElement(etiqueta);
+        if (clases) el.className = clases;
+        if (texto !== undefined) el.textContent = texto;
+        return el;
+    }
+
+    function errorDialogo(id, texto) {
+        const el = document.getElementById(id);
+        el.textContent = texto || '';
+        el.hidden = !texto;
+    }
+
+    //Todos los botones "Cancelar" cierran su diálogo
+    document.querySelectorAll('dialog [data-cerrar]').forEach(b =>
+        b.addEventListener('click', () => b.closest('dialog').close()));
+
+    /* ---------- Lista ---------- */
+    function pintar() {
+        const actual = getUsuarioActual();
+        elLista.replaceChildren();
+        if (usuarios.length === 0) {
+            elLista.append(crear('p', 'text-center py-4', 'Aún no hay usuarios. Añade el primero.'));
+            return;
+        }
+        for (const u of usuarios) {
+            const fila = crear('div', 'fila-usuario');
+
+            const elegirBtn = crear('button', 'burbuja burbuja-txt elegir',
+                u.nombre + (actual && actual.id === u.id ? '  ✓' : ''));
+            elegirBtn.type = 'button';
+            elegirBtn.setAttribute('aria-label', 'Entrar como ' + u.nombre);
+            elegirBtn.addEventListener('click', () => elegir(u));
+
+            const eliminarBtn = crear('button', 'burbuja burbuja-txt burbuja-peq', 'Eliminar');
+            eliminarBtn.type = 'button';
+            eliminarBtn.setAttribute('aria-label', 'Eliminar a ' + u.nombre);
+            eliminarBtn.addEventListener('click', () => abrirEliminar(u));
+
+            fila.append(elegirBtn, eliminarBtn);
+            elLista.append(fila);
+        }
+    }
+
+    async function recargar() {
+        usuarios = await getUsuarios();
+        pintar();
+    }
+
+    function elegir(u) {
+        setUsuarioActual(u);
+        if (!getUsuarioActual()) {
+            mostrarError('Este navegador no permite recordar tu nombre (¿modo privado?). Prueba en una ventana normal.');
+            return;
+        }
+        location.href = destino();
+    }
+
+    /* ---------- Añadir usuario ---------- */
+    const dlgAnadir = document.getElementById('dlg-anadir');
+    const elNombre = document.getElementById('anadir-nombre');
+    const elGuardar = document.getElementById('anadir-guardar');
+
+    document.getElementById('btn-anadir').addEventListener('click', () => {
+        document.getElementById('form-anadir').reset();
+        errorDialogo('anadir-error', '');
+        dlgAnadir.showModal();
+        elNombre.focus();
+    });
+
+    document.getElementById('form-anadir').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        errorDialogo('anadir-error', '');
+        const nombre = elNombre.value.trim();
+        if (!nombre) { errorDialogo('anadir-error', 'Escribe el nombre del usuario.'); elNombre.focus(); return; }
+        elGuardar.disabled = true;     // evita guardarlo dos veces si se pulsa rápido
+        try {
+            await crearUsuario(nombre);
+            dlgAnadir.close();
+            await recargar();
+            avisar('Usuario añadido');
+        } catch (err) {
+            errorDialogo('anadir-error', err.message);   // incluye el "ya existe" (409) del servidor
+        } finally {
+            elGuardar.disabled = false;
+        }
+    });
+
+    /* ---------- Eliminar usuario ---------- */
+    const dlgEliminar = document.getElementById('dlg-eliminar');
+    const elConfirmar = document.getElementById('eliminar-confirmar');
+    let porEliminar = null;
+
+    function abrirEliminar(u) {
+        porEliminar = u;
+        errorDialogo('eliminar-error', '');
+        document.getElementById('eliminar-texto').textContent =
+            '¿Eliminar a «' + u.nombre + '»? Dejará de salir en la lista. ' +
+            'Los movimientos que ya hizo se conservan en el historial.';
+        dlgEliminar.showModal();
+    }
+
+    document.getElementById('form-eliminar').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        if (!porEliminar) return;
+        errorDialogo('eliminar-error', '');
+        elConfirmar.disabled = true;
+        try {
+            await eliminarUsuario(porEliminar.id);
+            const actual = getUsuarioActual();
+            if (actual && actual.id === porEliminar.id) {
+                olvidarUsuarioActual();      // si te eliminas a ti mismo, hay que volver a elegir
+                document.getElementById('volver').hidden = true;
+            }
+            porEliminar = null;
+            dlgEliminar.close();
+            await recargar();
+            avisar('Usuario eliminado');
+        } catch (err) {
+            errorDialogo('eliminar-error', err.message);
+        } finally {
+            elConfirmar.disabled = false;
+        }
+    });
+
+    /* ---------- Arranque ---------- */
+    async function iniciar() {
+        if (getUsuarioActual()) {
+            const volver = document.getElementById('volver');
+            volver.href = destino();
+            volver.hidden = false;
+        }
+        try {
+            await recargar();
+        } catch (err) {
+            mostrarError('No se pudo cargar la lista de usuarios. ' + err.message);
+        }
+    }
+    iniciar();
+</script>
+</body>
+</html>

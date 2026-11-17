@@ -4,14 +4,16 @@
 const USAR_MOCK = false;
 const API = '/api';
 
-// La tabla movimiento exige un usuario (usuario_id NOT NULL) y ya no hay selector.
-// Mientras no se decida otra cosa, todos los movimientos se guardan con este usuario.
-// 1 = "Usuario de prueba 1" (V2__datos_iniciales.sql).
-const USUARIO_POR_DEFECTO = 1;
+// La tabla movimiento exige un usuario (usuario_id NOT NULL). Cada persona elige su nombre en
+// usuarios.html y se recuerda en este navegador (ver "Usuario que está usando la app" más abajo).
 
 /* ---------- Datos falsos (solo con USAR_MOCK = true) ---------- */
 const MOCK = {
-    usuarios: [{ id: 1, nombre: 'Usuario de prueba 1' }],
+    usuarios: [
+        { id: 1, nombre: 'Alba' },
+        { id: 2, nombre: 'Gisela' },
+        { id: 3, nombre: 'Camila' },
+    ],
     categorias: [
         { id: 1, nombre: 'Fungible' },
         { id: 2, nombre: 'Simuladores' },
@@ -51,7 +53,7 @@ function mockAnotar(almacenId, tipo, producto, cantidad, destinoId) {
         tipo: tipo,
         producto: producto,
         cantidad: cantidad,
-        usuario: MOCK.usuarios[0].nombre,
+        usuario: (MOCK.usuarios.find(u => u.id === usuarioIdActual()) || { nombre: '?' }).nombre,
         fecha: new Date().toISOString(),
         almacenDestino: destinoId ? mockNombreAlmacen(destinoId) : null,
     });
@@ -99,10 +101,93 @@ async function getExistencias(almacenId) {
     return (await pedir('/almacenes/' + almacenId + '/existencias')).json();
 }
 
-// UsuarioDTO: { id, nombre }  (ahora mismo la interfaz no lo usa)
+// UsuarioDTO: { id, nombre }   -> GET /api/usuarios (solo los activos, por orden alfabético)
 async function getUsuarios() {
-    if (USAR_MOCK) return MOCK.usuarios;
+    if (USAR_MOCK) return [...MOCK.usuarios].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     return (await pedir('/usuarios')).json();
+}
+
+// Añade un usuario. Devuelve el UsuarioDTO. Si ya existe, el servidor responde 409
+// (error.estado === 409) con el texto en "mensaje".   -> POST /api/usuarios {nombre}
+async function crearUsuario(nombre) {
+    if (USAR_MOCK) {
+        const limpio = nombre.trim();
+        if (MOCK.usuarios.some(u => u.nombre.toLowerCase() === limpio.toLowerCase())) {
+            throw errorMock('«' + limpio + '» ya existe.', 409);
+        }
+        const nuevo = { id: ++MOCK.siguienteId, nombre: limpio };
+        MOCK.usuarios.push(nuevo);
+        return nuevo;
+    }
+    const respuesta = await pedir('/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombre }),
+    });
+    return respuesta.json();
+}
+
+// Elimina un usuario (el servidor lo desactiva: su historial se conserva).
+//   -> DELETE /api/usuarios/{id}   (204 sin cuerpo)
+async function eliminarUsuario(id) {
+    if (USAR_MOCK) {
+        const i = MOCK.usuarios.findIndex(u => u.id === id);
+        if (i < 0) throw errorMock('No existe el usuario ' + id, 404);
+        MOCK.usuarios.splice(i, 1);
+        return;
+    }
+    await pedir('/usuarios/' + id, { method: 'DELETE' });
+}
+
+/* ---------- Usuario que está usando la app ---------- */
+// Se guarda en este navegador (localStorage) para no preguntar el nombre en cada pantalla.
+// Cada movimiento se apunta con este usuario.
+const CLAVE_USUARIO = 'usuarioActual';
+
+function getUsuarioActual() {
+    try {
+        const u = JSON.parse(localStorage.getItem(CLAVE_USUARIO));
+        if (u && Number.isInteger(u.id) && typeof u.nombre === 'string') return u;
+    } catch (e) { /* sin almacenamiento o dato roto */ }
+    return null;
+}
+
+function setUsuarioActual(u) {
+    try { localStorage.setItem(CLAVE_USUARIO, JSON.stringify({ id: u.id, nombre: u.nombre })); } catch (e) { /* sin almacenamiento */ }
+}
+
+function olvidarUsuarioActual() {
+    try { localStorage.removeItem(CLAVE_USUARIO); } catch (e) { /* sin almacenamiento */ }
+}
+
+// Id del usuario que firma el movimiento. Si nadie ha elegido nombre, se corta con un error claro.
+function usuarioIdActual() {
+    const u = getUsuarioActual();
+    if (!u) throw new Error('Elige tu nombre antes de registrar movimientos.');
+    return u.id;
+}
+
+// Dirección de la pantalla de elegir nombre; al terminar vuelve a la página actual.
+function urlElegirUsuario() {
+    const destino = location.pathname.split('/').pop() + location.search;
+    return 'usuarios.html?volver=' + encodeURIComponent(destino);
+}
+
+// Las pantallas que registran movimientos la llaman al empezar: comprueba que hay un usuario elegido
+// y que sigue existiendo. Si no, lleva a elegir nombre (y vuelve después).
+// Devuelve el usuario, o null si está redirigiendo (entonces la pantalla no debe seguir).
+async function exigirUsuario() {
+    const actual = getUsuarioActual();
+    if (actual) {
+        try {
+            if ((await getUsuarios()).some(u => u.id === actual.id)) return actual;
+            olvidarUsuarioActual();          // lo eliminaron desde otro dispositivo
+        } catch (e) {
+            return actual;                   // si el servidor falla no se bloquea: el error saldrá al cargar
+        }
+    }
+    location.href = urlElegirUsuario();
+    return null;
 }
 
 // CategoriaDTO: { id, nombre }   -> GET /api/categorias (para el desplegable de "Añadir producto")
@@ -158,7 +243,7 @@ async function postMovimiento(m) {
         almacenId: m.almacenId,
         productId: m.productoId,
         cantidad: m.cantidad,
-        usuarioId: m.usuarioId ?? USUARIO_POR_DEFECTO,
+        usuarioId: m.usuarioId ?? usuarioIdActual(),
         almacenDestinoId: m.almacenDestinoId ?? null,   // solo se usa en TRASLADO
     };
     await pedir('/movimientos', {
@@ -200,7 +285,7 @@ async function crearProducto(almacenId, p) {
         categoriaId: p.categoriaId ?? null,
         cantidad: p.cantidad,
         stockMinimo: p.stockMinimo,
-        usuarioId: p.usuarioId ?? USUARIO_POR_DEFECTO,
+        usuarioId: p.usuarioId ?? usuarioIdActual(),
     };
     const respuesta = await pedir('/productos', {
         method: 'POST',
@@ -211,7 +296,7 @@ async function crearProducto(almacenId, p) {
 }
 
 // Quita un producto entero de un almacén (se pierden sus unidades en ese almacén).
-//   -> DELETE /api/almacenes/{almacenId}/productos/{productoId}?usuarioId=1   (204 sin cuerpo)
+//   -> DELETE /api/almacenes/{almacenId}/productos/{productoId}?usuarioId=...   (204 sin cuerpo)
 // El usuario va en la dirección porque el servidor deja un AJUSTE a 0 en el historial.
 async function eliminarExistencia(almacenId, productoId) {
     if (USAR_MOCK) {
@@ -222,7 +307,7 @@ async function eliminarExistencia(almacenId, productoId) {
         return;
     }
     await pedir('/almacenes/' + almacenId + '/productos/' + productoId +
-        '?usuarioId=' + encodeURIComponent(USUARIO_POR_DEFECTO), { method: 'DELETE' });
+        '?usuarioId=' + encodeURIComponent(usuarioIdActual()), { method: 'DELETE' });
 }
 
 function descargarInforme() {

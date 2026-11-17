@@ -13,7 +13,8 @@
         <!-- Si falta el fichero img/logo-ceu.png, la pastilla se oculta sola -->
         <div class="logo-ceu mb-3"><img src="img/logo-ceu.png" alt="CEU" onerror="this.parentElement.hidden = true"></div>
         <h1 class="display-5 fw-bold">Almacenes</h1>
-        <p class="lead mb-0">Hospital de simulación clínica</p>
+        <p class="lead mb-2">Hospital de simulación clínica</p>
+        <p class="small mb-0">Usuario: <strong id="usuario-nombre"></strong> · <a id="cambiar-usuario" href="usuarios.html">Cambiar</a></p>
     </header>
 
     <div id="mensaje" class="mensaje mensaje-morado" hidden></div>
@@ -53,7 +54,16 @@
             mensaje.hidden = false;
         }
     }
-    cargar();
+
+    // Antes de nada hay que saber quién usa la app (los movimientos se apuntan a su nombre)
+    async function iniciar() {
+        const usuario = await exigirUsuario();
+        if (!usuario) return;
+        document.getElementById('usuario-nombre').textContent = usuario.nombre;
+        document.getElementById('cambiar-usuario').href = urlElegirUsuario();
+        cargar();
+    }
+    iniciar();
 </script>
 </body>
 </html>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Almacén · Inventario</title>
     <link rel="stylesheet" href="css/bootstrap.min.css?v=2">
-    <link rel="stylesheet" href="css/estilos.css?v=3">
+    <link rel="stylesheet" href="css/estilos.css?v=4">
 </head>
 <body>
 <main class="container py-3" style="max-width: 42rem;">
@@ -15,6 +15,7 @@
             <span class="logo-ceu logo-ceu-peq"><img src="img/logo-ceu.png" alt="CEU San Pablo" onerror="this.parentElement.remove()"></span>
         </div>
         <h1 id="titulo" class="h2 fw-bold mt-1">Almacén</h1>
+        <p class="small mb-0">Usuario: <strong id="usuario-nombre"></strong> · <a id="cambiar-usuario" href="usuarios.html">Cambiar</a></p>
     </header>
 
     <!-- Aquí se muestran los avisos y errores (oculto por defecto) -->
@@ -585,6 +586,11 @@
     //comprueba que hay ID
     //Si lo hay carga el título y existencias a la vez con Promise.all
     async function iniciar() {
+        // Antes de nada hay que saber quién usa la app (los movimientos se apuntan a su nombre)
+        const usuario = await exigirUsuario();
+        if (!usuario) return;
+        document.getElementById('usuario-nombre').textContent = usuario.nombre;
+        document.getElementById('cambiar-usuario').href = urlElegirUsuario();
         try {
             // Si el QR trae un código, se busca a qué almacén corresponde
             if (codigo) {
