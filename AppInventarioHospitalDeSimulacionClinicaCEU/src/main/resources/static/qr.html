@@ -109,8 +109,10 @@
 
         for (const a of unicos) {
             // Con código fijo, el QR no depende del número interno del almacén
-            const clave = a.codigoQr ? 'c=' + encodeURIComponent(a.codigoQr) : 'id=' + encodeURIComponent(a.id);
-            const url = base + '/almacen.html?' + clave;
+            const parametro = a.codigoQr ? 'c=' + encodeURIComponent(a.codigoQr) : 'id=' + encodeURIComponent(a.id);
+            const urlVisible = base + '/almacen.html?' + parametro;               // la que se imprime como texto
+            const k = claveAcceso();
+            const url = k ? urlVisible + '&k=' + encodeURIComponent(k) : urlVisible; // la que lleva el QR
 
             const etiqueta = document.createElement('div');
             etiqueta.className = 'etiqueta';
@@ -132,7 +134,7 @@
 
             const dir = document.createElement('div');
             dir.className = 'url';
-            dir.textContent = url;
+            dir.textContent = urlVisible;
 
             etiqueta.append(qr, nombre, desc, dir);
             elEtiquetas.append(etiqueta);

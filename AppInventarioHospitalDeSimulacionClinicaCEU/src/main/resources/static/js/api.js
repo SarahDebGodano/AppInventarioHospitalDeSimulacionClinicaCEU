@@ -3,6 +3,22 @@
 // USAR_MOCK = false -> habla con la API de Spring (/api/...).
 const USAR_MOCK = false;
 const API = '/api';
+const CLAVE_ACCESO = 'inventario.clave';
+let claveEnMemoria = '';
+
+(function guardarClaveDelQr() {
+    const url = new URL(location.href);
+    const k = url.searchParams.get('k');
+    if (!k) return;
+    claveEnMemoria = k;
+    try { localStorage.setItem(CLAVE_ACCESO, k); } catch (e) { /* sin almacenamiento: vale para esta página */ }
+    url.searchParams.delete('k');
+    history.replaceState(null, '', url);
+})();
+
+function claveAcceso() {
+    try { return localStorage.getItem(CLAVE_ACCESO) || claveEnMemoria; } catch (e) { return claveEnMemoria; }
+}
 
 // La tabla movimiento exige un usuario (usuario_id NOT NULL). Cada persona elige su nombre en
 // usuarios.html y se recuerda en este navegador (ver "Usuario que está usando la app" más abajo).
@@ -67,8 +83,9 @@ function mockActualizar(fila, cantidad) {
 /* ---------- Utilidad común ---------- */
 // Si el servidor responde con error, lanza un Error con el "mensaje" del servidor.
 // error.estado guarda el código HTTP (409 = ya existe, 404 = no existe, ...).
-async function pedir(ruta, opciones) {
-    const respuesta = await fetch(API + ruta, opciones);
+async function pedir(ruta, opciones ={}) {
+    const cabeceras = { ...(opciones.headers || {}), 'X-Clave': claveAcceso() };
+    const respuesta = await fetch(API + ruta, { ...opciones, headers: cabeceras });
     if (!respuesta.ok) {
         let mensaje = 'Error ' + respuesta.status;
         try {
@@ -312,5 +329,5 @@ async function eliminarExistencia(almacenId, productoId) {
 
 function descargarInforme() {
     if (USAR_MOCK) { alert('Modo prueba'); return; }
-    window.location.href = API + '/informes/inventario.pdf';
+    window.location.href = API + '/informes/inventario.pdf ? clave =' +encodeURIComponent(claveAcceso());
 }
