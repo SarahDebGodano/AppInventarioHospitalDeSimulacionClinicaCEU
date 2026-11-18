@@ -329,5 +329,4 @@ async function eliminarExistencia(almacenId, productoId) {
 
 function descargarInforme() {
     if (USAR_MOCK) { alert('Modo prueba'); return; }
-    window.location.href = API + '/informes/inventario.pdf ? clave =' +encodeURIComponent(claveAcceso());
-}
+    window.location.href = API + '/informes/inventario.pdf?clave=' + encodeURIComponent(claveAcceso());}
